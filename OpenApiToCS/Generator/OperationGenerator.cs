@@ -28,11 +28,9 @@ public class OperationGenerator : BaseGenerator
             classSb.AppendLine("using Hellang.Middleware.ProblemDetails;");
             classSb.AppendLine($"using {namespaceName}.Models;");
             classSb.AppendLine("using Microsoft.AspNetCore.Mvc;");
-
-            classSb.AppendLine($"namespace {namespaceName};");
-
             classSb.AppendLine();
-
+            classSb.AppendLine($"namespace {namespaceName};");
+            classSb.AppendLine();
             classSb.AppendLine($"// Generated API class for {group.Key}");
             classSb.AppendLine($"public class {className}(HttpClient httpClient)");
             classSb.AppendLine("{");
@@ -78,8 +76,7 @@ public class OperationGenerator : BaseGenerator
                 }
             }
 
-            classSb.AppendLine();
-            classSb.AppendLine(GenerateErrorHandling());
+            classSb.Append(GenerateErrorHandling());
             classSb.AppendLine("}");
             result.Add(className, classSb.ToString());
         }
@@ -204,12 +201,12 @@ public class OperationGenerator : BaseGenerator
 
         foreach (string parameter in parameters)
         {
-            sb.Append(parameter + ",");
+            sb.Append(parameter + ", ");
         }
 
         foreach (string parameter in optionalParameters)
         {
-            sb.Append(parameter + ",");
+            sb.Append(parameter + ", ");
         }
 
         sb.Append("Action<HttpRequestMessage>? configureRequest = null" + (hasReturnType || bodyName is not null ? ", " : ""));
@@ -219,6 +216,7 @@ public class OperationGenerator : BaseGenerator
             sb.Append("JsonSerializerOptions? jsonSerializerOptions = null");
         sb.Append(')');
 
+        sb.AppendLine();
         sb.AppendLine("\t{");
         string queryString = path;
         var isFirst = true;
@@ -277,6 +275,7 @@ public class OperationGenerator : BaseGenerator
         sb.AppendLine("\t\tthrow new UnreachableException(\"This should never happen, as EnsureSuccessStatusCode should throw an exception if the status code is not successful.\");");
 
         sb.AppendLine("\t}");
+        sb.AppendLine();
         return sb;
     }
 
