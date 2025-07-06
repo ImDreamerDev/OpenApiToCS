@@ -148,7 +148,7 @@ public class OperationGenerator : BaseGenerator
         var parameters = new List<string>();
         var optionalParameters = new List<string>();
         var hasApiVersionHeader = false;
-        if (operation.Parameters.Length > 0)
+        if (operation.Parameters is not null && operation.Parameters.Length > 0)
         {
             foreach (OpenApiParameter parameter in operation.Parameters)
             {
@@ -222,22 +222,26 @@ public class OperationGenerator : BaseGenerator
         sb.AppendLine("\t{");
         string queryString = path;
         var isFirst = true;
-        foreach (OpenApiParameter parameter in operation.Parameters)
+        if (operation.Parameters is not null)
         {
-            if (parameter.In != "query")
-                continue;
+            foreach (OpenApiParameter parameter in operation.Parameters)
+            {
+                if (parameter.In != "query")
+                    continue;
 
-            queryString += isFirst ? "?" : "&";
-            isFirst = false;
-            if (parameter.Required)
-            {
-                queryString += $"{parameter.Name}={{{parameter.Name}}}";
-            }
-            else
-            {
-                queryString += $"{parameter.Name}={{{parameter.Name} ?? null}}";
+                queryString += isFirst ? "?" : "&";
+                isFirst = false;
+                if (parameter.Required)
+                {
+                    queryString += $"{parameter.Name}={{{parameter.Name}}}";
+                }
+                else
+                {
+                    queryString += $"{parameter.Name}={{{parameter.Name} ?? null}}";
+                }
             }
         }
+        
 
         sb.AppendLine($"\t\tHttpRequestMessage httpRequest = new HttpRequestMessage(HttpMethod.{method}, $\"{queryString}\");");
         if (hasApiVersionHeader)

@@ -8,7 +8,7 @@ public class OpenApiOperation
     [JsonPropertyName("summary")]
     public string? Summary { get; init; }
     [JsonPropertyName("parameters")]
-    public OpenApiParameter[] Parameters { get; init; } = [];
+    public OpenApiParameter[]? Parameters { get; init; } = [];
     [JsonPropertyName("requestBody")]
     public OpenApiRequestBody? RequestBody { get; init; }
     [JsonPropertyName("responses")]
