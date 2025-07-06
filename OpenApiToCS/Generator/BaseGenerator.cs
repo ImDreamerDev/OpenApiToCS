@@ -12,10 +12,25 @@ public class BaseGenerator
         if (string.IsNullOrEmpty(summary))
             return sb;
 
-        sb.AppendLine($"\t/// <summary>");
-        sb.AppendLine($"\t/// {summary.Replace("\n", " ")}");
-        sb.AppendLine($"\t/// </summary>");
+        sb.Append("\t/// <summary>\n");
+        sb.Append("\t/// ");
+        if (summary.IndexOf('\n') != -1)
+        {
+            sb.Append(string.Create(summary.Length,
+                summary,
+                (span, src) =>
+                {
+                    for (var i = 0; i < src.Length; i++)
+                        span[i] = src[i] == '\n' ? ' ' : src[i];
+                }));
+        }
+        else
+        {
+            sb.Append(summary);
+        }
 
+        sb.Append('\n');
+        sb.Append("\t/// </summary>\n");
         return sb;
     }
 

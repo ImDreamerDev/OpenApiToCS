@@ -11,4 +11,16 @@
       <PackageReference Include="Hellang.Middleware.ProblemDetails" Version="6.5.1" />
     </ItemGroup>
 
+    <ItemGroup>
+      <Compile Remove="Example\**" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <EmbeddedResource Remove="Example\**" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <None Remove="Example\**" />
+    </ItemGroup>
+
 </Project>

@@ -19,7 +19,7 @@ public class DataClassGenerator : BaseGenerator
             }
 
             string className = GetClassNameFromKey(schema.Key).ToTitleCase();
-            string namespaceName = GetClassNameFromKey(document.Info.Title).ToTitleCase() + "ApiClient" + "V" + document.Info.Version?.First() + ".Models";
+            string namespaceName = GetClassNameFromKey(document.Info.Title).ToTitleCase() + "ApiClient" + "V" + document.Info.Version[0] + ".Models";
             if (className is "ProblemDetails" or "HttpValidationProblemDetails" or "ExceptionProblemDetails")
                 continue;
 
@@ -54,18 +54,13 @@ public class DataClassGenerator : BaseGenerator
         sb.AppendLine("using System.Text.Json.Serialization;");
         sb.AppendLine($"namespace {namespaceName};");
         sb = GenerateMetadata(sb, key, schema);
-        if (schema.Description is not null)
-        {
-            sb.AppendLine("\t/// <summary>");
-            sb.AppendLine($"\t/// {schema.Description?.Replace("\n", " ")}");
-            sb.AppendLine("\t/// </summary>");
-        }
+        sb = GenerateSummary(sb, schema.Description);
         sb.AppendLine("\t[JsonConverter(typeof(JsonStringEnumConverter))]");
         sb.AppendLine($"\tpublic enum {className}");
         sb.AppendLine("{");
         foreach (object enumValue in schema.Enum)
         {
-            sb.AppendLine($"        {enumValue},");
+            sb.AppendLine($"        {enumValue.ToString()},");
         }
         sb.AppendLine("}");
         return sb;
@@ -101,7 +96,7 @@ public class DataClassGenerator : BaseGenerator
         {
             foreach (var property in schema.Properties)
             {
-                sb = GenerateSummary(sb, property.Value.Description);
+                GenerateSummary(sb, property.Value.Description);
 
                 if (property.Value.Deprecated)
                 {

@@ -1,4 +1,7 @@
-﻿using System.Text.Json.Serialization;
+﻿using System.Net;
+using System.Text.Json;
+using System.Text.Json.Serialization;
+using System.Text.Json.Serialization.Metadata;
 using OpenApiToCS.OpenApi;
 
 namespace OpenApiToCS.Generator;
@@ -28,20 +31,21 @@ public static partial class Extensions
             }
         }
     }
-    
+
     private static string ManualPascalize(string input)
     {
         Span<char> buffer = stackalloc char[input.Length];
-        var j = 0;
-        var capitalize = true;
-        foreach (char c in input)
+        int j = 0;
+        bool capitalize = true;
+        for (int i = 0; i < input.Length; i++)
         {
+            char c = input[i];
             if (c is ' ' or '_' or '-')
             {
                 capitalize = true;
                 continue;
             }
-            buffer[j++] = capitalize ? char.ToUpperInvariant(c) : c;
+            buffer[j++] = capitalize && char.IsLower(c) ? char.ToUpperInvariant(c) : c;
             capitalize = false;
         }
         return new string(buffer[..j]);
@@ -52,11 +56,13 @@ public static partial class Extensions
         {
             null => throw new ArgumentNullException(nameof(input)),
             "" => throw new ArgumentException($"{nameof(input)} cannot be empty", nameof(input)),
-            _ => string.Create(input.Length, input, (span, src) =>
-            {
-                span[0] = char.ToLowerInvariant(src[0]);
-                src.AsSpan(1).CopyTo(span[1..]);
-            })
+            _ => string.Create(input.Length,
+                input,
+                (span, src) =>
+                {
+                    span[0] = char.ToLowerInvariant(src[0]);
+                    src.AsSpan(1).CopyTo(span[1..]);
+                })
         };
 
     [JsonSerializable(typeof(OpenApiDocument))]
@@ -71,7 +77,5 @@ public static partial class Extensions
     [JsonSerializable(typeof(OpenApiSchemaContainer))]
     [JsonSerializable(typeof(OpenApiSecurityScheme))]
     [JsonSourceGenerationOptions(GenerationMode = JsonSourceGenerationMode.Metadata)]
-    public partial class OpenApiSourceGenerationContext : JsonSerializerContext
-    {
-    }
+    public partial class OpenApiSourceGenerationContext : JsonSerializerContext;
 }

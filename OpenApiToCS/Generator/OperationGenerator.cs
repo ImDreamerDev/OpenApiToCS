@@ -1,4 +1,5 @@
-﻿using System.Net;
+﻿using System.Diagnostics;
+using System.Net;
 using System.Text;
 using OpenApiToCS.OpenApi;
 
@@ -10,7 +11,7 @@ public class OperationGenerator : BaseGenerator
     {
         
         var result = new Dictionary<string, string>();
-        var version = document.Info.Version.First();
+        var version = document.Info.Version[0];
         string namespaceName = GetClassNameFromKey(document.Info.Title).ToTitleCase() + "ApiClientV" + version;
 
         var groups = document.Paths
@@ -114,6 +115,7 @@ public class OperationGenerator : BaseGenerator
         sb = GenerateSummary(sb, operation.Summary);
 
         bool hasReturnType;
+        var successfulContent = okResponse.Value?.Content?.FirstOrDefault();
         if (okResponse.Value?.Content is not null && okResponse.Value.Content.Count == 0 || (okResponse.Value is null && successResponse.Value is not null))
         {
             sb.Append("\tpublic async Task " + method + methodName + "(");
@@ -125,11 +127,15 @@ public class OperationGenerator : BaseGenerator
             if (canBeNull is false && okResponse.Value is not null)
             {
                 if (okResponse.Value.Content is not null)
-                    canBeNull = okResponse.Value.Content.FirstOrDefault().Value.Schema.Nullable;
+                {
+                    ArgumentNullException.ThrowIfNull(successfulContent);
+                    canBeNull = successfulContent.Value.Value.Schema.Nullable;
+                }
             }
             if (okResponse.Value?.Content is not null)
             {
-                string returnType = GetTypeFromKey(okResponse.Value.Content?.FirstOrDefault().Value.Schema!);
+                ArgumentNullException.ThrowIfNull(successfulContent);
+                string returnType = GetTypeFromKey(successfulContent.Value.Value.Schema!);
                 sb.Append("\tpublic async Task<" + returnType + (canBeNull ? "?" : "") + ">" + method + methodName + "(");
                 hasReturnType = true;
             }
@@ -256,11 +262,12 @@ public class OperationGenerator : BaseGenerator
 
         if (okResponse.Value?.Content != null && okResponse.Value.Content.Count != 0)
         {
-            string returnType = GetTypeFromKey(okResponse.Value.Content.FirstOrDefault().Value.Schema);
+            ArgumentNullException.ThrowIfNull(successfulContent);
+            string returnType = GetTypeFromKey(successfulContent.Value.Value.Schema);
             sb.AppendLine($"\t\t\tvar result = await response.Content.ReadFromJsonAsync<{returnType}>(options: jsonSerializerOptions);");
             sb.AppendLine("\t\t\tif (result is null && allowNullOrEmptyResponse)");
             sb.AppendLine("\t\t\t{");
-            sb.AppendLine(okResponse.Value.Content.FirstOrDefault().Value.Schema.Type == "array" ? "\t\t\t\treturn [];" : "\t\t\t\treturn null!;");
+            sb.AppendLine(successfulContent.Value.Value.Schema.Type == "array" ? "\t\t\t\treturn [];" : "\t\t\t\treturn null!;");
             sb.AppendLine("\t\t\t}");
             sb.AppendLine("\t\t\treturn result ?? throw new InvalidOperationException(\"Failed to deserialize response.\");");
         }
@@ -348,10 +355,17 @@ public class OperationGenerator : BaseGenerator
             raw = last;
         }
 
-        return raw
-            .Replace("{", "")
-            .Replace("}", "")
-            .Replace(".", " ")
-            .Replace("-", " ");
+        return string.Create(raw.Length, raw, (span, src) =>
+        {
+            for (int i = 0; i < src.Length; i++)
+            {
+                char c = src[i];
+                span[i] = c switch
+                {
+                    '{' or '}' or '.' or '-' => ' ',
+                    _ => c
+                };
+            }
+        }).Trim();
     }
 }
