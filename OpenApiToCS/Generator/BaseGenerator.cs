@@ -5,6 +5,7 @@ namespace OpenApiToCS.Generator;
 
 public class BaseGenerator
 {
+    // Enable this to emit metadata comments in the generated code.
     public static bool EmitMetadata = false;
 
     protected static StringBuilder GenerateSummary(StringBuilder sb, string? summary)
@@ -14,7 +15,7 @@ public class BaseGenerator
 
         sb.Append("\t/// <summary>\n");
         sb.Append("\t/// ");
-        if (summary.IndexOf('\n') != -1)
+        if (summary.Contains('\n'))
         {
             sb.Append(string.Create(summary.Length,
                 summary,
@@ -119,7 +120,7 @@ public class BaseGenerator
             }
         }
 
-        if (schema.Type == "array" && schema.Items != null)
+        if (schema is { Type: "array", Items: not null })
         {
             sb.AppendLine($"{indentation}// Items type: {GetTypeFromKey(schema.Items)}");
         }
@@ -137,7 +138,7 @@ public class BaseGenerator
         sb.AppendLine($"{indentation}// Nullable: " + schema.Nullable);
         sb.AppendLine($"{indentation}// Deprecated: " + schema.Deprecated);
 
-        if (schema.Required.Count > 0)
+        if (schema.Required?.Count > 0)
         {
             sb.AppendLine($"{indentation}// Required properties:");
             foreach (string requiredProperty in schema.Required)
@@ -151,7 +152,7 @@ public class BaseGenerator
             sb.AppendLine($"{indentation}// Format: {schema.Format}");
         }
 
-        if (schema.Properties.Count > 0)
+        if (schema.Properties?.Count > 0)
         {
             sb.AppendLine($"{indentation}// Properties:");
             foreach (var property in schema.Properties)
@@ -186,10 +187,10 @@ public class BaseGenerator
             }
         }
 
-        if (operation.Parameters.Length > 0)
+        if (operation.Parameters?.Length > 0)
         {
             sb.AppendLine($"{indentation}// Parameters:");
-            foreach (var parameter in operation.Parameters)
+            foreach (OpenApiParameter parameter in operation.Parameters)
             {
                 sb.AppendLine($"{indentation}// - {parameter.Name} ({parameter.In})");
                 sb.AppendLine($"{indentation}//   Description: {parameter.Description?.Replace("\n", " ")}");
@@ -205,7 +206,7 @@ public class BaseGenerator
             foreach (var response in operation.Responses)
             {
                 sb.AppendLine($"{indentation}// - {response.Key}: {response.Value.Description?.Replace("\n", " ")}");
-                if (response.Value.Content.Count > 0)
+                if (response.Value.Content?.Count > 0)
                 {
                     foreach (var content in response.Value.Content)
                     {

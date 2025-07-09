@@ -111,14 +111,14 @@ public class DataClassGenerator : BaseGenerator
                 sb.AppendLine("\t[JsonPropertyName(\"" + property.Key + "\")]");
                 if (property.Value.Type is not "object" and not null)
                 {
-                    sb.AppendLine($"\tpublic {GetTypeFromKey(property.Value)}{(property.Value.Nullable ? "?" : "")} {property.Key.ToTitleCase()} {{ get; set; }}");
+                    sb.AppendLine($"\tpublic {GetTypeFromKey(property.Value)}{(property.Value.Nullable ? "?" : "")} {property.Key.ToTitleCase()} {{ get; init; }}");
                 }
                 else if (property.Value.Reference is not null)
                 {
-                    sb.AppendLine($"\tpublic {GetClassNameFromKey(property.Value.Reference)}{(property.Value.Nullable ? "?" : "")} {property.Key.ToTitleCase()} {{ get; set; }}");
+                    sb.AppendLine($"\tpublic {GetClassNameFromKey(property.Value.Reference)}{(property.Value.Nullable ? "?" : "")} {property.Key.ToTitleCase()} {{ get; init; }}");
                 }
                 else
-                    sb.AppendLine($"\tpublic {GetClassNameFromKey(property.Value.Type)}{(property.Value.Nullable ? "?" : "")} {property.Key.ToTitleCase()} {{ get; set; }}");
+                    sb.AppendLine($"\tpublic {GetClassNameFromKey(property.Value.Type)}{(property.Value.Nullable ? "?" : "")} {property.Key.ToTitleCase()} {{ get; init; }}");
                 sb.AppendLine();
             }
         }

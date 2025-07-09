@@ -1,5 +1,4 @@
-﻿using System.Diagnostics;
-using System.Net;
+﻿using System.Net;
 using System.Text;
 using OpenApiToCS.OpenApi;
 
@@ -9,9 +8,8 @@ public class OperationGenerator : BaseGenerator
 {
     public static Dictionary<string, string> GenerateApiClasses(OpenApiDocument document)
     {
-        
         var result = new Dictionary<string, string>();
-        var version = document.Info.Version[0];
+        char version = document.Info.Version[0];
         string namespaceName = GetClassNameFromKey(document.Info.Title).ToTitleCase() + "ApiClientV" + version;
 
         var groups = document.Paths
@@ -126,7 +124,9 @@ public class OperationGenerator : BaseGenerator
             bool canBeNull = successResponse.Key is HttpStatusCode.Created or HttpStatusCode.Accepted or HttpStatusCode.NoContent;
             if (canBeNull is false && okResponse.Value is not null)
             {
-                if (okResponse.Value.Content is not null)
+                // If we can return created, accepted or no content, we assume the response can be null,
+                // and we don't need to check the content schema for nullability since it has already been checked.
+                if (okResponse.Value.Content is not null && canBeNull is false)
                 {
                     ArgumentNullException.ThrowIfNull(successfulContent);
                     canBeNull = successfulContent.Value.Value.Schema.Nullable;
@@ -135,7 +135,7 @@ public class OperationGenerator : BaseGenerator
             if (okResponse.Value?.Content is not null)
             {
                 ArgumentNullException.ThrowIfNull(successfulContent);
-                string returnType = GetTypeFromKey(successfulContent.Value.Value.Schema!);
+                string returnType = GetTypeFromKey(successfulContent.Value.Value.Schema);
                 sb.Append("\tpublic async Task<" + returnType + (canBeNull ? "?" : "") + ">" + method + methodName + "(");
                 hasReturnType = true;
             }
@@ -357,7 +357,7 @@ public class OperationGenerator : BaseGenerator
 
         return string.Create(raw.Length, raw, (span, src) =>
         {
-            for (int i = 0; i < src.Length; i++)
+            for (var i = 0; i < src.Length; i++)
             {
                 char c = src[i];
                 span[i] = c switch

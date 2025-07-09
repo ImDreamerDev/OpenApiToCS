@@ -1,7 +1,4 @@
-﻿using System.Net;
-using System.Text.Json;
-using System.Text.Json.Serialization;
-using System.Text.Json.Serialization.Metadata;
+﻿using System.Text.Json.Serialization;
 using OpenApiToCS.OpenApi;
 
 namespace OpenApiToCS.Generator;
@@ -35,9 +32,11 @@ public static partial class Extensions
     private static string ManualPascalize(string input)
     {
         Span<char> buffer = stackalloc char[input.Length];
-        int j = 0;
-        bool capitalize = true;
-        for (int i = 0; i < input.Length; i++)
+        var j = 0;
+        var capitalize = true;
+        // We use a for loop here to avoid allocations from LINQ methods and performance overhead from enumerators.
+        // ReSharper disable once ForCanBeConvertedToForeach
+        for (var i = 0; i < input.Length; i++)
         {
             char c = input[i];
             if (c is ' ' or '_' or '-')
