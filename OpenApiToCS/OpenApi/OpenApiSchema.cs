@@ -4,6 +4,8 @@ namespace OpenApiToCS.OpenApi;
 
 public class OpenApiSchema
 {
+    [JsonPropertyName("title")]
+    public string? Title { get; init; }
     [JsonPropertyName("description")]
     public string? Description { get; init; } // Optional description of the schema
     [JsonPropertyName("example")]
@@ -27,6 +29,8 @@ public class OpenApiSchema
     [JsonPropertyName("enum")]
     public List<object>? Enum { get; init; } // For string enums, this contains the possible values
     [JsonPropertyName("items")]
-    public OpenApiSchema? Items { get; set; }
+    public OpenApiSchema? Items { get; init; }
+    [JsonPropertyName("oneOf")]
+    public OpenApiSchema[]? OneOf { get; init; }
 
 }

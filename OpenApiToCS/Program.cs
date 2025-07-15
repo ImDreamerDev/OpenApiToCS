@@ -23,7 +23,7 @@ if (obj is null)
     return;
 }
 
-var dataClassesTask = DataClassGenerator.GenerateDataClasses(obj);
+var dataClassesTask = new DataClassGenerator().GenerateDataClasses(obj);
 var apiClassesTask = OperationGenerator.GenerateApiClasses(obj);
 
 Directory.CreateDirectory("code/Models");
@@ -40,7 +40,12 @@ foreach (var apiClass in apiClassesTask)
 }
 
 Console.WriteLine($"Generated {dataClassesTask.Count} data classes and {apiClassesTask.Count} API classes in {stopwatch.ElapsedMilliseconds} ms");
-
+/*
+stopwatch.Restart();
+var result = await new CustomClientV1().GetCustom("username", "password", 10, 1, "json", DateTimeOffset.UtcNow.AddDays(-7));
+Console.WriteLine($"Retrieved {result.Length} events in {stopwatch.ElapsedMilliseconds} ms");
+*/
+Debugger.Break();
 /*
 
 var handler = new HttpClientHandler();

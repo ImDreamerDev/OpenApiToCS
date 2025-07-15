@@ -27,6 +27,7 @@ public class OperationGenerator : BaseGenerator
             classSb.AppendLine("using Hellang.Middleware.ProblemDetails;");
             classSb.AppendLine($"using {namespaceName}.Models;");
             classSb.AppendLine("using Microsoft.AspNetCore.Mvc;");
+            classSb.AppendLine("using Microsoft.AspNetCore.Http.Extensions;");
             classSb.AppendLine();
             classSb.AppendLine($"namespace {namespaceName};");
             classSb.AppendLine();
@@ -136,7 +137,7 @@ public class OperationGenerator : BaseGenerator
             {
                 ArgumentNullException.ThrowIfNull(successfulContent);
                 string returnType = GetTypeFromKey(successfulContent.Value.Value.Schema);
-                sb.Append("\tpublic async Task<" + returnType + (canBeNull ? "?" : "") + ">" + method + methodName + "(");
+                sb.Append("\tpublic async Task<" + returnType + (canBeNull ? "?" : "") + "> " + method + methodName + "(");
                 hasReturnType = true;
             }
             else
@@ -145,7 +146,7 @@ public class OperationGenerator : BaseGenerator
                 hasReturnType = false;
             }
 
-           
+
         }
 
         var parameters = new List<string>();
@@ -224,8 +225,7 @@ public class OperationGenerator : BaseGenerator
 
         sb.AppendLine();
         sb.AppendLine("\t{");
-        string queryString = path;
-        var isFirst = true;
+        sb.AppendLine("\t\tvar queryBuilder = new QueryBuilder();");
         if (operation.Parameters is not null)
         {
             foreach (OpenApiParameter parameter in operation.Parameters)
@@ -233,21 +233,17 @@ public class OperationGenerator : BaseGenerator
                 if (parameter.In != "query")
                     continue;
 
-                queryString += isFirst ? "?" : "&";
-                isFirst = false;
-                if (parameter.Required)
+
+                if (parameter.Required is false)
                 {
-                    queryString += $"{parameter.Name}={{{parameter.Name}}}";
+                    sb.AppendLine($"\t\tif ({parameter.Name} is not null)");
                 }
-                else
-                {
-                    queryString += $"{parameter.Name}={{{parameter.Name} ?? null}}";
-                }
+
+                sb.AppendLine($"\t\t\tqueryBuilder.Add(\"{parameter.Name}\", \"{parameter.Name}\");");
             }
         }
-        
 
-        sb.AppendLine($"\t\tHttpRequestMessage httpRequest = new HttpRequestMessage(HttpMethod.{method}, $\"{queryString}\");");
+        sb.AppendLine($"\t\tHttpRequestMessage httpRequest = new HttpRequestMessage(HttpMethod.{method}, \"{path}\" + queryBuilder);");
         if (hasApiVersionHeader)
             sb.AppendLine($"\t\thttpRequest.Headers.Add(\"api-version\", \"{document.Info.Version}\");");
 
@@ -311,25 +307,6 @@ public class OperationGenerator : BaseGenerator
         sb.AppendLine("\t}");
         return sb.ToString();
     }
-
-    /*private static string GetMethodNameFromPath(string? key)
-    {
-        if (string.IsNullOrEmpty(key))
-        {
-            return "object"; // Default type if key is null or empty
-        }
-        string[] split = key.Split('/');
-        StringBuilder sb;
-        if (split.Length > 2 && split[^2].Contains('{') is false)
-        {
-            sb = new StringBuilder(split[^2].Split('.')[^1] + " " + split[^1].Split('.')[^1]);
-            return sb.Replace("{", "").Replace("}", "").Replace(".", " ").Replace("-", " ").ToString();
-        }
-
-        sb = new StringBuilder(split[^1]);
-
-        return sb.Replace(".", " ").Replace("-", " ").Replace("{", "").Replace("}", "").ToString();
-    }*/
     
     private static string GetMethodNameFromPath(string? key)
     {
@@ -355,17 +332,19 @@ public class OperationGenerator : BaseGenerator
             raw = last;
         }
 
-        return string.Create(raw.Length, raw, (span, src) =>
-        {
-            for (var i = 0; i < src.Length; i++)
+        return string.Create(raw.Length,
+            raw,
+            (span, src) =>
             {
-                char c = src[i];
-                span[i] = c switch
+                for (var i = 0; i < src.Length; i++)
                 {
-                    '{' or '}' or '.' or '-' => ' ',
-                    _ => c
-                };
-            }
-        }).Trim();
+                    char c = src[i];
+                    span[i] = c switch
+                    {
+                        '{' or '}' or '.' or '-' => ' ',
+                        _ => c
+                    };
+                }
+            }).Trim();
     }
 }

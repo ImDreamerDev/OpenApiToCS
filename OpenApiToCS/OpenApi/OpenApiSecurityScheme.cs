@@ -9,7 +9,7 @@ public class OpenApiSecurityScheme
     [JsonPropertyName("description")]
     public string? Description { get; init; }
     [JsonPropertyName("scheme")]
-    public required string Scheme { get; init; } // e.g., "bearer", "basic"
+    public string? Scheme { get; init; } // e.g., "bearer", "basic"
     [JsonPropertyName("bearerFormat")]
     public string? BearerFormat { get; init; } // e.g., "JWT"
 }

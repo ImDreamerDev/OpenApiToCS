@@ -8,19 +8,23 @@
     </PropertyGroup>
 
     <ItemGroup>
-      <PackageReference Include="Hellang.Middleware.ProblemDetails" Version="6.5.1" />
+        <PackageReference Include="Hellang.Middleware.ProblemDetails" Version="6.5.1"/>
+        <PackageReference Include="xunit.extensibility.core" Version="2.5.3" />
     </ItemGroup>
 
     <ItemGroup>
-      <Compile Remove="Example\**" />
+        <Compile Remove="Example\**"/>
     </ItemGroup>
 
     <ItemGroup>
-      <EmbeddedResource Remove="Example\**" />
+        <EmbeddedResource Remove="Example\**"/>
     </ItemGroup>
 
     <ItemGroup>
-      <None Remove="Example\**" />
+        <None Remove="Example\**"/>
+    </ItemGroup>
+    <ItemGroup>
+        <InternalsVisibleTo Include="OpenApiToCS.Tests"/>
     </ItemGroup>
 
 </Project>
