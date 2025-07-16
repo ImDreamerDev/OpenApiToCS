@@ -329,7 +329,14 @@ public class OperationGenerator(DataClassGenerationResult dataClassGenerationRes
                     sb.AppendLine($"\t\tif ({parameter.Name} is not null)");
                 }
 
-                sb.AppendLine($"\t\t\tqueryBuilder.Add(\"{parameter.Name}\", \"{parameter.Name}\");");
+                if (IsReferenceType(parameter.Schema))
+                {
+                    sb.AppendLine($"\t\t\tqueryBuilder.Add(\"{parameter.Name}\", {parameter.Name});");
+                }
+                else
+                {
+                    sb.AppendLine($"\t\t\tqueryBuilder.Add(\"{parameter.Name}\", {parameter.Name}.Value.ToString());");
+                }
             }
         }
 

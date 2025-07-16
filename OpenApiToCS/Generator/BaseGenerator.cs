@@ -98,6 +98,30 @@ public class BaseGenerator
         };
     }
 
+    protected bool IsReferenceType(OpenApiSchema schema)
+    {
+        if (schema.Reference is not null)
+            return true;
+
+        string? type = schema.Type;
+        string? format = schema.Format;
+
+        return type switch
+        {
+            null or "object" when schema.Reference is null => true,
+            "integer" => false,
+            "number" => false,
+            "boolean" => false,
+            "string" when format == "date-time" => false,
+            "string" when format == "date" => false,
+            "string" when format == "time" => false,
+            "string" when format == "uuid" => false,
+            "string" => true,
+            "array" => true,
+            _ => throw new NotImplementedException($"The schema type {type} is not implemented.")
+        };
+    }
+
     protected StringBuilder GenerateMetadata(StringBuilder sb, string key, OpenApiSchema schema, int indent = 0)
     {
         if (EmitMetadata is false)
