@@ -21,8 +21,8 @@ public class BaseGeneratorTests
     public void GetClassNameFromKey_Should_Sanitize_And_Extract_Name(string? key, string expected)
     {
         var result = typeof(BaseGenerator)
-            .GetMethod("GetClassNameFromKey", BindingFlags.NonPublic | BindingFlags.Static)!
-            .Invoke(null, [key]) as string;
+            .GetMethod("GetClassNameFromKey", BindingFlags.NonPublic | BindingFlags.Instance)!
+            .Invoke(new BaseGenerator(), [key]) as string;
         result.ShouldBe(expected);
     }
 
@@ -47,8 +47,8 @@ public class BaseGeneratorTests
     {
         OpenApiSchema schema = new OpenApiSchema { Type = type, Format = format };
         var result = typeof(BaseGenerator)
-            .GetMethod("GetTypeFromKey", BindingFlags.NonPublic | BindingFlags.Static)!
-            .Invoke(null, [schema]) as string;
+            .GetMethod("GetTypeFromKey", BindingFlags.NonPublic | BindingFlags.Instance)!
+            .Invoke(new BaseGenerator(), [schema]) as string;
         result.ShouldBe(expected);
     }
 
@@ -61,8 +61,8 @@ public class BaseGeneratorTests
             Items = new OpenApiSchema { Type = "string" }
         };
         var result = typeof(BaseGenerator)
-            .GetMethod("GetTypeFromKey", BindingFlags.NonPublic | BindingFlags.Static)!
-            .Invoke(null, [schema]) as string;
+            .GetMethod("GetTypeFromKey", BindingFlags.NonPublic | BindingFlags.Instance)!
+            .Invoke(new BaseGenerator(), [schema]) as string;
         result.ShouldBe("string[]");
     }
 
@@ -73,8 +73,8 @@ public class BaseGeneratorTests
         Should.Throw<TargetInvocationException>(() =>
         {
             typeof(BaseGenerator)
-                .GetMethod("GetTypeFromKey", BindingFlags.NonPublic | BindingFlags.Static)!
-                .Invoke(null, [schema]);
+                .GetMethod("GetTypeFromKey", BindingFlags.NonPublic | BindingFlags.Instance)!
+                .Invoke(new BaseGenerator(), [schema]);
         });
     }
 
@@ -83,8 +83,8 @@ public class BaseGeneratorTests
     {
         OpenApiSchema schema = new OpenApiSchema { Reference = "#/components/schemas/RefType" };
         var result = typeof(BaseGenerator)
-            .GetMethod("GetTypeFromKey", BindingFlags.NonPublic | BindingFlags.Static)!
-            .Invoke(null, [schema]) as string;
+            .GetMethod("GetTypeFromKey", BindingFlags.NonPublic | BindingFlags.Instance)!
+            .Invoke(new BaseGenerator(), [schema]) as string;
         result.ShouldBe("RefType");
     }
 
@@ -94,8 +94,8 @@ public class BaseGeneratorTests
         StringBuilder sb = new StringBuilder();
         var summary = "This is a summary.";
         StringBuilder? result = typeof(BaseGenerator)
-            .GetMethod("GenerateSummary", BindingFlags.NonPublic | BindingFlags.Static)!
-            .Invoke(null, [sb, summary]) as StringBuilder;
+            .GetMethod("GenerateSummary", BindingFlags.NonPublic | BindingFlags.Instance)!
+            .Invoke(new BaseGenerator(), [sb, summary]) as StringBuilder;
         var output = result!.ToString();
         output.ShouldContain("<summary>");
         output.ShouldContain("This is a summary.");
@@ -106,14 +106,14 @@ public class BaseGeneratorTests
     {
         StringBuilder sb = new StringBuilder();
         StringBuilder? result = typeof(BaseGenerator)
-            .GetMethod("GenerateSummary", BindingFlags.NonPublic | BindingFlags.Static)!
-            .Invoke(null, [sb, null]) as StringBuilder;
+            .GetMethod("GenerateSummary", BindingFlags.NonPublic | BindingFlags.Instance)!
+            .Invoke(new BaseGenerator(), [sb, null]) as StringBuilder;
         result.ShouldBe(sb);
 
         sb = new StringBuilder();
         result = typeof(BaseGenerator)
-            .GetMethod("GenerateSummary", BindingFlags.NonPublic | BindingFlags.Static)!
-            .Invoke(null, [sb, ""]) as StringBuilder;
+            .GetMethod("GenerateSummary", BindingFlags.NonPublic | BindingFlags.Instance)!
+            .Invoke(new BaseGenerator(), [sb, ""]) as StringBuilder;
         result.ShouldBe(sb);
     }
 
@@ -122,8 +122,8 @@ public class BaseGeneratorTests
     {
         StringBuilder sb = new StringBuilder();
         StringBuilder? result = typeof(BaseGenerator)
-            .GetMethod("GenerateSummary", BindingFlags.NonPublic | BindingFlags.Static)!
-            .Invoke(null, [sb, "This is a summary."]) as StringBuilder;
+            .GetMethod("GenerateSummary", BindingFlags.NonPublic | BindingFlags.Instance)!
+            .Invoke(new BaseGenerator(), [sb, "This is a summary."]) as StringBuilder;
 
         var output = result!.ToString();
         output.ShouldContain("<summary>");
@@ -137,8 +137,8 @@ public class BaseGeneratorTests
         StringBuilder sb = new StringBuilder();
         var summary = "Line1\nLine2\nLine3";
         StringBuilder? result = typeof(BaseGenerator)
-            .GetMethod("GenerateSummary", BindingFlags.NonPublic | BindingFlags.Static)!
-            .Invoke(null, [sb, summary]) as StringBuilder;
+            .GetMethod("GenerateSummary", BindingFlags.NonPublic | BindingFlags.Instance)!
+            .Invoke(new BaseGenerator(), [sb, summary]) as StringBuilder;
 
         var output = result!.ToString();
         output.ShouldContain("<summary>");
@@ -152,15 +152,15 @@ public class BaseGeneratorTests
     {
         StringBuilder sb1 = new StringBuilder("start");
         StringBuilder? result1 = typeof(BaseGenerator)
-            .GetMethod("GenerateSummary", BindingFlags.NonPublic | BindingFlags.Static)!
-            .Invoke(null, [sb1, null]) as StringBuilder;
+            .GetMethod("GenerateSummary", BindingFlags.NonPublic | BindingFlags.Instance)!
+            .Invoke(new BaseGenerator(), [sb1, null]) as StringBuilder;
         result1.ShouldBe(sb1);
         result1!.ToString().ShouldBe("start");
 
         StringBuilder sb2 = new StringBuilder("start");
         StringBuilder? result2 = typeof(BaseGenerator)
-            .GetMethod("GenerateSummary", BindingFlags.NonPublic | BindingFlags.Static)!
-            .Invoke(null, [sb2, ""]) as StringBuilder;
+            .GetMethod("GenerateSummary", BindingFlags.NonPublic | BindingFlags.Instance)!
+            .Invoke(new BaseGenerator(), [sb2, ""]) as StringBuilder;
         result2.ShouldBe(sb2);
         result2!.ToString().ShouldBe("start");
     }

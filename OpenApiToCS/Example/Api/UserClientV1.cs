@@ -1,16 +1,23 @@
 using System.Diagnostics;
 using System.Net.Http.Json;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using Hellang.Middleware.ProblemDetails;
 using KLQuizApiClientV1.Models;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Http.Extensions;
+
 namespace KLQuizApiClientV1;
 
 // Generated API class for User
 public class UserClientV1(HttpClient httpClient)
 {
-	public async Task GetLogin(string? returnUrl = null,Action<HttpRequestMessage>? configureRequest = null)	{
-		HttpRequestMessage httpRequest = new HttpRequestMessage(HttpMethod.Get, $"/User/login?returnUrl={returnUrl ?? null}");
+	public async Task GetLogin(string? returnUrl = null, Action<HttpRequestMessage>? configureRequest = null)
+	{
+		var queryBuilder = new QueryBuilder();
+		if (returnUrl is not null)
+			queryBuilder.Add("returnUrl", "returnUrl");
+		HttpRequestMessage httpRequest = new HttpRequestMessage(HttpMethod.Get, "/User/login" + queryBuilder);
 		configureRequest?.Invoke(httpRequest);
 		HttpResponseMessage response = await httpClient.SendAsync(httpRequest);
 		if (response.IsSuccessStatusCode)
@@ -20,8 +27,16 @@ public class UserClientV1(HttpClient httpClient)
 		await HandleError(response, $"/User/login");
 		throw new UnreachableException("This should never happen, as EnsureSuccessStatusCode should throw an exception if the status code is not successful.");
 	}
-	public async Task<UserProfileReadModel>GetUserId(string userId,Action<HttpRequestMessage>? configureRequest = null, bool allowNullOrEmptyResponse = false, JsonSerializerOptions? jsonSerializerOptions = null)	{
-		HttpRequestMessage httpRequest = new HttpRequestMessage(HttpMethod.Get, $"/User/{userId}");
+
+	public async Task<UserProfileReadModel> GetUserId(string userId, Action<HttpRequestMessage>? configureRequest = null, bool allowNullOrEmptyResponse = false, JsonSerializerOptions? jsonSerializerOptions = null)
+	{
+		if (jsonSerializerOptions is null)
+		{
+			jsonSerializerOptions = new JsonSerializerOptions(JsonSerializerDefaults.Web);
+			jsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());
+		}
+		var queryBuilder = new QueryBuilder();
+		HttpRequestMessage httpRequest = new HttpRequestMessage(HttpMethod.Get, "/User/{userId}" + queryBuilder);
 		configureRequest?.Invoke(httpRequest);
 		HttpResponseMessage response = await httpClient.SendAsync(httpRequest);
 		if (response.IsSuccessStatusCode)
@@ -36,8 +51,16 @@ public class UserClientV1(HttpClient httpClient)
 		await HandleError(response, $"/User/{userId}");
 		throw new UnreachableException("This should never happen, as EnsureSuccessStatusCode should throw an exception if the status code is not successful.");
 	}
-	public async Task<ProfileQuizReadModel[]>GetQuizzes(string userId,Action<HttpRequestMessage>? configureRequest = null, bool allowNullOrEmptyResponse = false, JsonSerializerOptions? jsonSerializerOptions = null)	{
-		HttpRequestMessage httpRequest = new HttpRequestMessage(HttpMethod.Get, $"/User/{userId}/quizzes");
+
+	public async Task<ProfileQuizReadModel[]> GetQuizzes(string userId, Action<HttpRequestMessage>? configureRequest = null, bool allowNullOrEmptyResponse = false, JsonSerializerOptions? jsonSerializerOptions = null)
+	{
+		if (jsonSerializerOptions is null)
+		{
+			jsonSerializerOptions = new JsonSerializerOptions(JsonSerializerDefaults.Web);
+			jsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());
+		}
+		var queryBuilder = new QueryBuilder();
+		HttpRequestMessage httpRequest = new HttpRequestMessage(HttpMethod.Get, "/User/{userId}/quizzes" + queryBuilder);
 		configureRequest?.Invoke(httpRequest);
 		HttpResponseMessage response = await httpClient.SendAsync(httpRequest);
 		if (response.IsSuccessStatusCode)
@@ -52,8 +75,13 @@ public class UserClientV1(HttpClient httpClient)
 		await HandleError(response, $"/User/{userId}/quizzes");
 		throw new UnreachableException("This should never happen, as EnsureSuccessStatusCode should throw an exception if the status code is not successful.");
 	}
-	public async Task GetGetToken(string? returnUrl = null,Action<HttpRequestMessage>? configureRequest = null)	{
-		HttpRequestMessage httpRequest = new HttpRequestMessage(HttpMethod.Get, $"/User/getToken?returnUrl={returnUrl ?? null}");
+
+	public async Task GetGetToken(string? returnUrl = null, Action<HttpRequestMessage>? configureRequest = null)
+	{
+		var queryBuilder = new QueryBuilder();
+		if (returnUrl is not null)
+			queryBuilder.Add("returnUrl", "returnUrl");
+		HttpRequestMessage httpRequest = new HttpRequestMessage(HttpMethod.Get, "/User/getToken" + queryBuilder);
 		configureRequest?.Invoke(httpRequest);
 		HttpResponseMessage response = await httpClient.SendAsync(httpRequest);
 		if (response.IsSuccessStatusCode)
@@ -63,8 +91,13 @@ public class UserClientV1(HttpClient httpClient)
 		await HandleError(response, $"/User/getToken");
 		throw new UnreachableException("This should never happen, as EnsureSuccessStatusCode should throw an exception if the status code is not successful.");
 	}
-	public async Task GetLogout(string? returnUrl = null,Action<HttpRequestMessage>? configureRequest = null)	{
-		HttpRequestMessage httpRequest = new HttpRequestMessage(HttpMethod.Get, $"/User/logout?returnUrl={returnUrl ?? null}");
+
+	public async Task GetLogout(string? returnUrl = null, Action<HttpRequestMessage>? configureRequest = null)
+	{
+		var queryBuilder = new QueryBuilder();
+		if (returnUrl is not null)
+			queryBuilder.Add("returnUrl", "returnUrl");
+		HttpRequestMessage httpRequest = new HttpRequestMessage(HttpMethod.Get, "/User/logout" + queryBuilder);
 		configureRequest?.Invoke(httpRequest);
 		HttpResponseMessage response = await httpClient.SendAsync(httpRequest);
 		if (response.IsSuccessStatusCode)
@@ -74,8 +107,16 @@ public class UserClientV1(HttpClient httpClient)
 		await HandleError(response, $"/User/logout");
 		throw new UnreachableException("This should never happen, as EnsureSuccessStatusCode should throw an exception if the status code is not successful.");
 	}
-	public async Task<UserProfileReadModel>PatchUser(UserProfileReadModel userProfileReadModel,Action<HttpRequestMessage>? configureRequest = null, bool allowNullOrEmptyResponse = false, JsonSerializerOptions? jsonSerializerOptions = null)	{
-		HttpRequestMessage httpRequest = new HttpRequestMessage(HttpMethod.Patch, $"/User");
+
+	public async Task<UserProfileReadModel> PatchUser(UserProfileReadModel userProfileReadModel, Action<HttpRequestMessage>? configureRequest = null, bool allowNullOrEmptyResponse = false, JsonSerializerOptions? jsonSerializerOptions = null)
+	{
+		if (jsonSerializerOptions is null)
+		{
+			jsonSerializerOptions = new JsonSerializerOptions(JsonSerializerDefaults.Web);
+			jsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());
+		}
+		var queryBuilder = new QueryBuilder();
+		HttpRequestMessage httpRequest = new HttpRequestMessage(HttpMethod.Patch, "/User" + queryBuilder);
 		httpRequest.Content = JsonContent.Create(userProfileReadModel, options: jsonSerializerOptions);
 		configureRequest?.Invoke(httpRequest);
 		HttpResponseMessage response = await httpClient.SendAsync(httpRequest);
@@ -91,8 +132,16 @@ public class UserClientV1(HttpClient httpClient)
 		await HandleError(response, $"/User");
 		throw new UnreachableException("This should never happen, as EnsureSuccessStatusCode should throw an exception if the status code is not successful.");
 	}
-	public async Task<UserProfileReadModel>PostUpload(FileReadModel fileReadModel,Action<HttpRequestMessage>? configureRequest = null, bool allowNullOrEmptyResponse = false, JsonSerializerOptions? jsonSerializerOptions = null)	{
-		HttpRequestMessage httpRequest = new HttpRequestMessage(HttpMethod.Post, $"/User/upload");
+
+	public async Task<UserProfileReadModel> PostUpload(FileReadModel fileReadModel, Action<HttpRequestMessage>? configureRequest = null, bool allowNullOrEmptyResponse = false, JsonSerializerOptions? jsonSerializerOptions = null)
+	{
+		if (jsonSerializerOptions is null)
+		{
+			jsonSerializerOptions = new JsonSerializerOptions(JsonSerializerDefaults.Web);
+			jsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());
+		}
+		var queryBuilder = new QueryBuilder();
+		HttpRequestMessage httpRequest = new HttpRequestMessage(HttpMethod.Post, "/User/upload" + queryBuilder);
 		httpRequest.Content = JsonContent.Create(fileReadModel, options: jsonSerializerOptions);
 		configureRequest?.Invoke(httpRequest);
 		HttpResponseMessage response = await httpClient.SendAsync(httpRequest);
@@ -108,8 +157,16 @@ public class UserClientV1(HttpClient httpClient)
 		await HandleError(response, $"/User/upload");
 		throw new UnreachableException("This should never happen, as EnsureSuccessStatusCode should throw an exception if the status code is not successful.");
 	}
-	public async Task<UserProfileReadModel?>PatchColor(String color,Action<HttpRequestMessage>? configureRequest = null, bool allowNullOrEmptyResponse = false, JsonSerializerOptions? jsonSerializerOptions = null)	{
-		HttpRequestMessage httpRequest = new HttpRequestMessage(HttpMethod.Patch, $"/User/color");
+
+	public async Task<UserProfileReadModel?> PatchColor(String color, Action<HttpRequestMessage>? configureRequest = null, bool allowNullOrEmptyResponse = false, JsonSerializerOptions? jsonSerializerOptions = null)
+	{
+		if (jsonSerializerOptions is null)
+		{
+			jsonSerializerOptions = new JsonSerializerOptions(JsonSerializerDefaults.Web);
+			jsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());
+		}
+		var queryBuilder = new QueryBuilder();
+		HttpRequestMessage httpRequest = new HttpRequestMessage(HttpMethod.Patch, "/User/color" + queryBuilder);
 		httpRequest.Content = JsonContent.Create(color, options: jsonSerializerOptions);
 		configureRequest?.Invoke(httpRequest);
 		HttpResponseMessage response = await httpClient.SendAsync(httpRequest);
@@ -146,5 +203,4 @@ public class UserClientV1(HttpClient httpClient)
 		}
 		response.EnsureSuccessStatusCode();
 	}
-
 }

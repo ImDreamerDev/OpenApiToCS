@@ -6,9 +6,9 @@ namespace OpenApiToCS.Generator;
 public class BaseGenerator
 {
     // Enable this to emit metadata comments in the generated code.
-    public static bool EmitMetadata = false;
+    public bool EmitMetadata = false;
 
-    protected static StringBuilder GenerateSummary(StringBuilder sb, string? summary)
+    protected StringBuilder GenerateSummary(StringBuilder sb, string? summary)
     {
         if (string.IsNullOrEmpty(summary))
             return sb;
@@ -35,10 +35,10 @@ public class BaseGenerator
         return sb;
     }
 
-    private static readonly Dictionary<string, string> _classNamesCache = new Dictionary<string, string>(comparer: StringComparer.Ordinal);
+    private readonly Dictionary<string, string> _classNamesCache = new Dictionary<string, string>(comparer: StringComparer.Ordinal);
 
 
-    protected static string GetClassNameFromKey(string? key)
+    protected string GetClassNameFromKey(string? key)
     {
         if (string.IsNullOrEmpty(key))
             return "object";
@@ -68,7 +68,7 @@ public class BaseGenerator
         return result;
     }
 
-    protected static string GetTypeFromKey(OpenApiSchema schema)
+    protected string GetTypeFromKey(OpenApiSchema schema)
     {
         if (schema.Reference is not null)
             return GetClassNameFromKey(schema.Reference);
@@ -98,7 +98,7 @@ public class BaseGenerator
         };
     }
 
-    protected static StringBuilder GenerateMetadata(StringBuilder sb, string key, OpenApiSchema schema, int indent = 0)
+    protected StringBuilder GenerateMetadata(StringBuilder sb, string key, OpenApiSchema schema, int indent = 0)
     {
         if (EmitMetadata is false)
             return sb;
@@ -166,7 +166,7 @@ public class BaseGenerator
         return sb;
     }
 
-    protected static StringBuilder GenerateMetadata(StringBuilder sb, string key, OpenApiOperation operation, int indent = 0)
+    protected StringBuilder GenerateMetadata(StringBuilder sb, string key, OpenApiOperation operation, int indent = 0)
     {
         if (EmitMetadata is false)
             return sb;

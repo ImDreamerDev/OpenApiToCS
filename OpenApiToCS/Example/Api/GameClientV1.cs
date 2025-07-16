@@ -1,9 +1,11 @@
 using System.Diagnostics;
 using System.Net.Http.Json;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using Hellang.Middleware.ProblemDetails;
 using KLQuizApiClientV1.Models;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Http.Extensions;
 
 namespace KLQuizApiClientV1;
 
@@ -12,7 +14,13 @@ public class GameClientV1(HttpClient httpClient)
 {
 	public async Task PostGame(Quiz quiz, Action<HttpRequestMessage>? configureRequest = null, JsonSerializerOptions? jsonSerializerOptions = null)
 	{
-		HttpRequestMessage httpRequest = new HttpRequestMessage(HttpMethod.Post, $"/Game");
+		if (jsonSerializerOptions is null)
+		{
+			jsonSerializerOptions = new JsonSerializerOptions(JsonSerializerDefaults.Web);
+			jsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());
+		}
+		var queryBuilder = new QueryBuilder();
+		HttpRequestMessage httpRequest = new HttpRequestMessage(HttpMethod.Post, "/Game" + queryBuilder);
 		httpRequest.Content = JsonContent.Create(quiz, options: jsonSerializerOptions);
 		configureRequest?.Invoke(httpRequest);
 		HttpResponseMessage response = await httpClient.SendAsync(httpRequest);
@@ -26,7 +34,8 @@ public class GameClientV1(HttpClient httpClient)
 
 	public async Task PostStart(string gameCode, Action<HttpRequestMessage>? configureRequest = null)
 	{
-		HttpRequestMessage httpRequest = new HttpRequestMessage(HttpMethod.Post, $"/Game/{gameCode}/start");
+		var queryBuilder = new QueryBuilder();
+		HttpRequestMessage httpRequest = new HttpRequestMessage(HttpMethod.Post, "/Game/{gameCode}/start" + queryBuilder);
 		configureRequest?.Invoke(httpRequest);
 		HttpResponseMessage response = await httpClient.SendAsync(httpRequest);
 		if (response.IsSuccessStatusCode)
@@ -39,7 +48,8 @@ public class GameClientV1(HttpClient httpClient)
 
 	public async Task GetGameCode(string gameCode, Action<HttpRequestMessage>? configureRequest = null)
 	{
-		HttpRequestMessage httpRequest = new HttpRequestMessage(HttpMethod.Get, $"/Game/{gameCode}");
+		var queryBuilder = new QueryBuilder();
+		HttpRequestMessage httpRequest = new HttpRequestMessage(HttpMethod.Get, "/Game/{gameCode}" + queryBuilder);
 		configureRequest?.Invoke(httpRequest);
 		HttpResponseMessage response = await httpClient.SendAsync(httpRequest);
 		if (response.IsSuccessStatusCode)

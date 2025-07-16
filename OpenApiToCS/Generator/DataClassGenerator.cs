@@ -1,4 +1,5 @@
 ﻿using System.Text;
+using OpenApiToCS.Generator.Models;
 using OpenApiToCS.OpenApi;
 
 namespace OpenApiToCS.Generator;
@@ -7,11 +8,10 @@ public class DataClassGenerator : BaseGenerator
 {
     private readonly Queue<(string name, OpenApiSchema schema)> _missingSchemasToGenerate = [];
     private readonly HashSet<string> _generatedSchemas = [];
-    private readonly Queue<(string className, string source)> _generatedOneOfs = [];
+    private readonly DataClassGenerationResult _result = new DataClassGenerationResult();
 
-    public Dictionary<string, string> GenerateDataClasses(OpenApiDocument document)
+    public DataClassGenerationResult GenerateDataClasses(OpenApiDocument document)
     {
-        var result = new Dictionary<string, string>();
         string namespaceName = GetClassNameFromKey(document.Info.Title).ToTitleCase() + "ApiClient" + "V" + document.Info.Version[0] + ".Models";
         foreach (var schema in document.Components.Schemas)
         {
@@ -29,17 +29,18 @@ public class DataClassGenerator : BaseGenerator
             {
                 continue;
             }
-            StringBuilder sb = new StringBuilder();
+
+            Class @class;
 
             if (schema.Value.Enum is not null)
             {
-                sb = GenerateEnum(sb, className, namespaceName, schema.Key, schema.Value);
-                result.Add(className, sb.ToString());
+                @class = GenerateEnum(className, namespaceName, schema.Key, schema.Value);
+                _result.Classes.Add(className, @class);
                 continue;
             }
 
-            sb = GenerateRecord(sb, className, namespaceName, schema.Key, schema.Value);
-            result.Add(className, sb.ToString());
+            @class = GenerateRecord(className, namespaceName, schema.Key, schema.Value);
+            _result.Classes.Add(className, @class);
         }
 
         while (_missingSchemasToGenerate.TryDequeue(out (string name, OpenApiSchema schema) tuple))
@@ -50,26 +51,16 @@ public class DataClassGenerator : BaseGenerator
                 continue; // Already generated
             }
 
-            StringBuilder sb = new StringBuilder();
-            sb = GenerateRecord(sb, className, namespaceName, tuple.name, tuple.schema);
-            result.Add(className, sb.ToString());
+            Class @class = GenerateRecord(className, namespaceName, tuple.name, tuple.schema);
+            _result.Classes.Add(className, @class);
         }
 
-        while (_generatedOneOfs.TryDequeue(out (string className, string source) tuple))
-        {
-            result.Add(tuple.className, tuple.source);
-        }
-
-        return result;
+        return _result;
     }
 
-    private static StringBuilder GenerateEnum(StringBuilder sb, string className, string namespaceName, string key, OpenApiSchema schema)
+    private Class GenerateEnum(string className, string namespaceName, string key, OpenApiSchema schema)
     {
-        if (schema.Enum is null)
-        {
-            Console.Error.WriteLine("Enum schema does not contain any enum values for key: " + key);
-            return sb;
-        }
+        StringBuilder sb = new StringBuilder();
 
         sb.AppendLine("using System.Text.Json.Serialization;");
         sb.AppendLine($"namespace {namespaceName};");
@@ -78,16 +69,17 @@ public class DataClassGenerator : BaseGenerator
         sb.AppendLine("\t[JsonConverter(typeof(JsonStringEnumConverter))]");
         sb.AppendLine($"\tpublic enum {className}");
         sb.AppendLine("{");
-        foreach (object enumValue in schema.Enum)
+        foreach (object enumValue in schema.Enum!)
         {
             sb.AppendLine($"        {enumValue.ToString()},");
         }
         sb.AppendLine("}");
-        return sb;
+        return new Class(className, namespaceName, sb.ToString(), [], []);
     }
 
-    private StringBuilder GenerateRecord(StringBuilder sb, string className, string namespaceName, string key, OpenApiSchema schema, string? baseClass = null)
+    private Class GenerateRecord(string className, string namespaceName, string key, OpenApiSchema schema, string? baseClass = null)
     {
+        StringBuilder sb = new StringBuilder();
         if (schema.Reference is not null)
         {
             sb.AppendLine($"using {namespaceName};");
@@ -118,24 +110,30 @@ public class DataClassGenerator : BaseGenerator
         }
         sb.AppendLine();
         sb.AppendLine("{");
+        List<Property> properties = [];
+        List<OneOfConverter> oneOfConverters = [];
         if (schema.Properties is not null)
         {
             foreach (var property in schema.Properties)
             {
-                sb = GenerateProperty(sb, property, schema, className);
+                Property prop = GenerateProperty(sb, property, schema, className);
+                properties.Add(prop);
+                if (property.Value.Items?.OneOf == null)
+                    continue;
 
-                if (property.Value.Items?.OneOf != null)
+                OneOfConverter? converter = GenerateOneOf(property.Key, namespaceName, property.Value.Items);
+                if (converter is not null)
                 {
-                    GenerateOneOf(property.Key, namespaceName, property.Value.Items);
+                    oneOfConverters.Add(converter);
                 }
             }
         }
 
         sb.AppendLine("}");
-        return sb;
+        return new Class(className, namespaceName, sb.ToString(), properties, oneOfConverters);
     }
 
-    private StringBuilder GenerateProperty(StringBuilder sb, KeyValuePair<string, OpenApiSchema> property, OpenApiSchema schema, string className)
+    private Property GenerateProperty(StringBuilder sb, KeyValuePair<string, OpenApiSchema> property, OpenApiSchema schema, string className)
     {
         GenerateSummary(sb, property.Value.Description);
 
@@ -144,7 +142,8 @@ public class DataClassGenerator : BaseGenerator
             sb.AppendLine("\t[Obsolete(\"This property is deprecated.\")]");
         }
 
-        if (schema.Required is not null && schema.Required.Contains(property.Key))
+        bool isRequired = schema.Required is not null && schema.Required.Contains(property.Key);
+        if (isRequired)
         {
             sb.AppendLine("\t[Required]");
         }
@@ -184,43 +183,41 @@ public class DataClassGenerator : BaseGenerator
         sb.AppendLine($"\tpublic {propertyType}{(property.Value.Nullable ? "?" : "")} {propertyName} {{ get; init; }}");
         sb.AppendLine();
 
-        return sb;
+        return new Property(propertyName, propertyType, isRequired, property.Value.Nullable, property.Value.Description);
     }
 
-    private void GenerateOneOf(string ownerName, string nameSpace, OpenApiSchema schema)
+    private OneOfConverter? GenerateOneOf(string ownerName, string nameSpace, OpenApiSchema schema)
     {
         if (schema.OneOf is null)
         {
-            return;
+            return null;
         }
+
         string name = GetClassNameFromKey(ownerName).ToTitleCase();
-        StringBuilder baseSb = new StringBuilder();
-        GenerateRecord(baseSb, name + "OneOf", nameSpace, name, new OpenApiSchema());
-        _generatedOneOfs.Enqueue((name + "OneOf", baseSb.ToString()));
+        var oneOfClasses = new List<Class>();
+
+        Class baseClass = GenerateRecord(name + "OneOf", nameSpace, name, new OpenApiSchema());
+        oneOfClasses.Add(baseClass);
+
         var classNames = new List<string>(schema.OneOf.Length);
 
         foreach (OpenApiSchema oneOf in schema.OneOf)
         {
             string className = GetClassNameFromKey(ownerName) + GetClassNameFromKey(oneOf.Title!);
             classNames.Add(className);
-            StringBuilder sb = new StringBuilder();
-
-            sb = GenerateRecord(sb, className, nameSpace, oneOf.Title!, oneOf, name + "OneOf");
-
-            _generatedOneOfs.Enqueue((className, sb.ToString()));
+            Class oneOfClass = GenerateRecord(className, nameSpace, oneOf.Title!, oneOf, name + "OneOf");
+            oneOfClasses.Add(oneOfClass);
         }
 
         (string converterClassName, string converterSource) = GenerateJsonConvertersForOneOf(name + "OneOf", nameSpace, classNames);
 
-
-        _generatedOneOfs.Enqueue((converterClassName, converterSource));
-
+        return new OneOfConverter(converterClassName, nameSpace, converterSource, oneOfClasses);
     }
 
     public static (string className, string source) GenerateJsonConvertersForOneOf(string baseClassName, string namespaceName, List<string> classNames)
     {
         StringBuilder sb = new StringBuilder();
-        string converterName = baseClassName + "OneOfConverterJson";
+        string converterName = baseClassName + "ConverterJson";
         sb.AppendLine("using System.Text.Json;");
         sb.AppendLine("using System.Text.Json.Serialization;");
         sb.AppendLine("using System.Diagnostics;");

@@ -1,17 +1,93 @@
 ﻿using System.Net;
 using System.Text;
+using OpenApiToCS.Generator.Models;
 using OpenApiToCS.OpenApi;
 
 namespace OpenApiToCS.Generator;
 
-public class OperationGenerator : BaseGenerator
+public class OperationGenerator(DataClassGenerationResult dataClassGenerationResult, bool monoClient = false) : BaseGenerator
 {
-    public static Dictionary<string, string> GenerateApiClasses(OpenApiDocument document)
+    public Dictionary<string, string> GenerateApiClasses(OpenApiDocument document)
+    {
+        return monoClient ? GenerateMonoApiClass(document) : GeneratePolyApiClasses(document);
+    }
+
+
+    private Dictionary<string, string> GenerateMonoApiClass(OpenApiDocument document)
     {
         var result = new Dictionary<string, string>();
         char version = document.Info.Version[0];
         string namespaceName = GetClassNameFromKey(document.Info.Title).ToTitleCase() + "ApiClientV" + version;
+        StringBuilder classSb = new StringBuilder();
 
+        string className = GetClassNameFromKey(document.Info.Title).ToTitleCase() + "ClientV" + version;
+        classSb.AppendLine("using System.Diagnostics;");
+        classSb.AppendLine("using System.Net.Http.Json;");
+        classSb.AppendLine("using System.Text.Json;");
+        classSb.AppendLine("using System.Text.Json.Serialization;");
+        classSb.AppendLine("using Hellang.Middleware.ProblemDetails;");
+        classSb.AppendLine($"using {namespaceName}.Models;");
+        classSb.AppendLine("using Microsoft.AspNetCore.Mvc;");
+        classSb.AppendLine("using Microsoft.AspNetCore.Http.Extensions;");
+        classSb.AppendLine();
+        classSb.AppendLine($"namespace {namespaceName};");
+        classSb.AppendLine();
+        classSb.AppendLine($"// Generated API class for {document.Info.Title}");
+        classSb.AppendLine($"public class {className}(HttpClient httpClient)");
+        classSb.AppendLine("{");
+
+        foreach (var path in document.Paths)
+        {
+            if (path.Value.Get is not null)
+            {
+                classSb = GenerateOperationCode(classSb, document, path.Key, path.Value.Get, HttpMethod.Get);
+            }
+            if (path.Value.Post is not null)
+            {
+                classSb = GenerateOperationCode(classSb, document, path.Key, path.Value.Post, HttpMethod.Post);
+            }
+            if (path.Value.Put is not null)
+            {
+                classSb = GenerateOperationCode(classSb, document, path.Key, path.Value.Put, HttpMethod.Put);
+            }
+            if (path.Value.Delete is not null)
+            {
+                classSb = GenerateOperationCode(classSb, document, path.Key, path.Value.Delete, HttpMethod.Delete);
+            }
+
+            if (path.Value.Patch is not null)
+            {
+                classSb = GenerateOperationCode(classSb, document, path.Key, path.Value.Patch, HttpMethod.Patch);
+            }
+
+            if (path.Value.Head is not null)
+            {
+                classSb = GenerateOperationCode(classSb, document, path.Key, path.Value.Head, HttpMethod.Head);
+            }
+
+            if (path.Value.Options is not null)
+            {
+                classSb = GenerateOperationCode(classSb, document, path.Key, path.Value.Options, HttpMethod.Options);
+            }
+
+            if (path.Value.Trace is not null)
+            {
+                classSb = GenerateOperationCode(classSb, document, path.Key, path.Value.Trace, HttpMethod.Trace);
+            }
+        }
+
+        classSb.Append(GenerateErrorHandling());
+        classSb.AppendLine("}");
+        result.Add(className, classSb.ToString());
+
+        return result;
+    }
+
+    private Dictionary<string, string> GeneratePolyApiClasses(OpenApiDocument document)
+    {
+        var result = new Dictionary<string, string>();
+        char version = document.Info.Version[0];
+        string namespaceName = GetClassNameFromKey(document.Info.Title).ToTitleCase() + "ApiClientV" + version;
         var groups = document.Paths
             .GroupBy(path => path.Key.Split('/')[1]) // Group by the first segment of the path
             .ToDictionary(g => g.Key, g => g.ToList());
@@ -24,6 +100,7 @@ public class OperationGenerator : BaseGenerator
             classSb.AppendLine("using System.Diagnostics;");
             classSb.AppendLine("using System.Net.Http.Json;");
             classSb.AppendLine("using System.Text.Json;");
+            classSb.AppendLine("using System.Text.Json.Serialization;");
             classSb.AppendLine("using Hellang.Middleware.ProblemDetails;");
             classSb.AppendLine($"using {namespaceName}.Models;");
             classSb.AppendLine("using Microsoft.AspNetCore.Mvc;");
@@ -40,7 +117,6 @@ public class OperationGenerator : BaseGenerator
                 if (path.Value.Get is not null)
                 {
                     classSb = GenerateOperationCode(classSb, document, path.Key, path.Value.Get, HttpMethod.Get);
-
                 }
                 if (path.Value.Post is not null)
                 {
@@ -84,7 +160,7 @@ public class OperationGenerator : BaseGenerator
         return result;
     }
 
-    private static StringBuilder GenerateOperationCode(StringBuilder sb, OpenApiDocument document, string path, OpenApiOperation operation, HttpMethod httpMethod)
+    private StringBuilder GenerateOperationCode(StringBuilder sb, OpenApiDocument document, string path, OpenApiOperation operation, HttpMethod httpMethod)
     {
         string methodName = GetMethodNameFromPath(path).ToTitleCase();
         sb = GenerateMetadata(sb, path, operation);
@@ -225,6 +301,20 @@ public class OperationGenerator : BaseGenerator
 
         sb.AppendLine();
         sb.AppendLine("\t{");
+        if (hasReturnType || bodyName is not null)
+        {
+            sb.AppendLine("\t\tif (jsonSerializerOptions is null)");
+            sb.AppendLine("\t\t{");
+            sb.AppendLine("\t\t\tjsonSerializerOptions = new JsonSerializerOptions(JsonSerializerDefaults.Web);");
+            sb.AppendLine("\t\t\tjsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());");
+            sb.AppendLine("\t\t}");
+        }
+
+        foreach (OneOfConverter oneOfConverter in dataClassGenerationResult.Converters)
+        {
+            sb.AppendLine("\t\tjsonSerializerOptions.Converters.Add(new " + oneOfConverter.Name + "());");
+        }
+
         sb.AppendLine("\t\tvar queryBuilder = new QueryBuilder();");
         if (operation.Parameters is not null)
         {
@@ -307,7 +397,7 @@ public class OperationGenerator : BaseGenerator
         sb.AppendLine("\t}");
         return sb.ToString();
     }
-    
+
     private static string GetMethodNameFromPath(string? key)
     {
         if (string.IsNullOrEmpty(key))

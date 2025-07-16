@@ -1,22 +1,17 @@
 ﻿using System.Net;
 using System.Reflection;
 using System.Text;
+using OpenApiToCS.Generator;
 using OpenApiToCS.OpenApi;
 using Shouldly;
-
-namespace OpenApiToCS.Generator;
+namespace OpenApiToCS.Tests;
 
 public class BaseGeneratorGenerateMetadataOperationTests
 {
-    public BaseGeneratorGenerateMetadataOperationTests()
-    {
-        BaseGenerator.EmitMetadata = true;
-    }
-
     private static MethodInfo GetOperationMetadataMethod()
     {
         return typeof(BaseGenerator)
-            .GetMethods(BindingFlags.NonPublic | BindingFlags.Static)
+            .GetMethods(BindingFlags.NonPublic | BindingFlags.Instance)
             .First(m =>
             {
                 var parameters = m.GetParameters();
@@ -38,7 +33,8 @@ public class BaseGeneratorGenerateMetadataOperationTests
             Summary = "Gets a user"
         };
 
-        GetOperationMetadataMethod().Invoke(null, [sb, "getUser", operation, 0]);
+        var baseGenerator = new BaseGenerator() { EmitMetadata = true };
+        GetOperationMetadataMethod().Invoke(baseGenerator, [sb, "getUser", operation, 0]);
 
         var output = sb.ToString();
         output.ShouldContain("// Operation: getUser");
@@ -64,7 +60,8 @@ public class BaseGeneratorGenerateMetadataOperationTests
             }
         };
 
-        GetOperationMetadataMethod().Invoke(null, [sb, "createUser", operation, 0]);
+        var baseGenerator = new BaseGenerator() { EmitMetadata = true };
+        GetOperationMetadataMethod().Invoke(baseGenerator, [sb, "createUser", operation, 0]);
 
         var output = sb.ToString();
         output.ShouldContain("// Request Body: User data");
@@ -92,7 +89,8 @@ public class BaseGeneratorGenerateMetadataOperationTests
             ]
         };
 
-        GetOperationMetadataMethod().Invoke(null, [sb, "getUser", operation, 0]);
+        var baseGenerator = new BaseGenerator() { EmitMetadata = true };
+        GetOperationMetadataMethod().Invoke(baseGenerator, [sb, "getUser", operation, 0]);
 
         var output = sb.ToString();
         output.ShouldContain("// Parameters:");
@@ -125,7 +123,8 @@ public class BaseGeneratorGenerateMetadataOperationTests
             }
         };
 
-        GetOperationMetadataMethod().Invoke(null, [sb, "getUser", operation, 0]);
+        var baseGenerator = new BaseGenerator() { EmitMetadata = true };
+        GetOperationMetadataMethod().Invoke(baseGenerator, [sb, "getUser", operation, 0]);
 
         var output = sb.ToString();
         output.ShouldContain("// Operation: getUser");

@@ -1,8 +1,8 @@
 ﻿using System.Text.Json;
+using OpenApiToCS.Generator;
 using OpenApiToCS.OpenApi;
 using Shouldly;
-
-namespace OpenApiToCS.Generator;
+namespace OpenApiToCS.Tests;
 
 public class OperationGeneratorKlJsonTests
 {
@@ -20,7 +20,8 @@ public class OperationGeneratorKlJsonTests
     public void GenerateApiClasses_Should_Produce_Expected_Clients_And_Methods_For_KlQuiz()
     {
         var doc = LoadKlDocument();
-        var result = OperationGenerator.GenerateApiClasses(doc);
+        var dataClasses = new DataClassGenerator().GenerateDataClasses(doc);
+        var result = new OperationGenerator(dataClasses).GenerateApiClasses(doc);
 
         // Check expected client class names
         result.Keys.ShouldContain("GameClientV1");

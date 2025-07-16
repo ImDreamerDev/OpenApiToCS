@@ -1,6 +1,7 @@
 ﻿using System.Diagnostics;
 using System.Text.Json;
 using OpenApiToCS.Generator;
+using OpenApiToCS.Generator.Models;
 using OpenApiToCS.OpenApi;
 Stopwatch stopwatch = Stopwatch.StartNew();
 
@@ -23,23 +24,31 @@ if (obj is null)
     return;
 }
 
-var dataClassesTask = new DataClassGenerator().GenerateDataClasses(obj);
-var apiClassesTask = OperationGenerator.GenerateApiClasses(obj);
+var dataClasses = new DataClassGenerator().GenerateDataClasses(obj);
+var apiClasses = new OperationGenerator(dataClasses).GenerateApiClasses(obj);
 
 Directory.CreateDirectory("code/Models");
 Directory.CreateDirectory("code/Api");
 
-foreach (var dataClass in dataClassesTask)
+foreach (var dataClass in dataClasses.Classes)
 {
-    File.WriteAllText("code/Models/" + dataClass.Key + ".cs", dataClass.Value);
+    File.WriteAllText("code/Models/" + dataClass.Key + ".cs", dataClass.Value.Source);
+    foreach (OneOfConverter oneOfConverter in dataClass.Value.OneOfConverters)
+    {
+        File.WriteAllText("code/Models/" + oneOfConverter.Name + ".cs", oneOfConverter.Source);
+        foreach (Class oneOf in oneOfConverter.OneOfs)
+        {
+            File.WriteAllText("code/Models/" + oneOf.Name + ".cs", oneOf.Source);
+        }
+    }
 }
 
-foreach (var apiClass in apiClassesTask)
+foreach (var apiClass in apiClasses)
 {
     File.WriteAllText("code/Api/" + apiClass.Key + ".cs", apiClass.Value);
 }
 
-Console.WriteLine($"Generated {dataClassesTask.Count} data classes and {apiClassesTask.Count} API classes in {stopwatch.ElapsedMilliseconds} ms");
+Console.WriteLine($"Generated {dataClasses.ClassCount} data classes and {apiClasses.Count} API classes in {stopwatch.ElapsedMilliseconds} ms");
 /*
 stopwatch.Restart();
 var result = await new CustomClientV1().GetCustom("username", "password", 10, 1, "json", DateTimeOffset.UtcNow.AddDays(-7));

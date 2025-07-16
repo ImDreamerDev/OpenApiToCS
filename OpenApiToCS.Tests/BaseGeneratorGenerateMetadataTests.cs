@@ -1,17 +1,12 @@
-﻿using System.Text;
+﻿using System.Reflection;
+using System.Text;
+using OpenApiToCS.Generator;
 using OpenApiToCS.OpenApi;
 using Shouldly;
-
-namespace OpenApiToCS.Generator;
+namespace OpenApiToCS.Tests;
 
 public class BaseGeneratorGenerateMetadataTests
 {
-    public BaseGeneratorGenerateMetadataTests()
-    {
-        // Ensure metadata emission is enabled for tests
-        BaseGenerator.EmitMetadata = true;
-    }
-
     [Fact]
     public void GenerateMetadata_Should_Emit_Basic_Metadata()
     {
@@ -24,7 +19,7 @@ public class BaseGeneratorGenerateMetadataTests
         };
 
         typeof(BaseGenerator)
-            .GetMethods(System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static)
+            .GetMethods(BindingFlags.NonPublic | BindingFlags.Instance)
             .First(m =>
             {
                 var parameters = m.GetParameters();
@@ -35,7 +30,7 @@ public class BaseGeneratorGenerateMetadataTests
                        && parameters[2].ParameterType == typeof(OpenApiSchema)
                        && parameters[3].ParameterType == typeof(int);
             })
-            .Invoke(null, [sb, "Id", schema, 0]);
+            .Invoke(new BaseGenerator() { EmitMetadata = true }, [sb, "Id", schema, 0]);
 
         var output = sb.ToString();
         output.ShouldContain("// Schema: Id");
@@ -60,7 +55,7 @@ public class BaseGeneratorGenerateMetadataTests
         };
 
         typeof(BaseGenerator)
-            .GetMethods(System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static)
+            .GetMethods(BindingFlags.NonPublic| BindingFlags.Instance)
             .First(m =>
             {
                 var parameters = m.GetParameters();
@@ -71,7 +66,7 @@ public class BaseGeneratorGenerateMetadataTests
                        && parameters[2].ParameterType == typeof(OpenApiSchema)
                        && parameters[3].ParameterType == typeof(int);
             })
-            .Invoke(null, [sb, "Status", schema, 0]);
+            .Invoke(new BaseGenerator() { EmitMetadata = true }, [sb, "Status", schema, 0]);
 
         var output = sb.ToString();
         output.ShouldContain("// Enum values:");
@@ -91,7 +86,7 @@ public class BaseGeneratorGenerateMetadataTests
         };
 
         typeof(BaseGenerator)
-            .GetMethods(System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static)
+            .GetMethods(BindingFlags.NonPublic| BindingFlags.Instance)
             .First(m =>
             {
                 var parameters = m.GetParameters();
@@ -102,7 +97,7 @@ public class BaseGeneratorGenerateMetadataTests
                        && parameters[2].ParameterType == typeof(OpenApiSchema)
                        && parameters[3].ParameterType == typeof(int);
             })
-            .Invoke(null, [sb, "Numbers", schema, 0]);
+            .Invoke(new BaseGenerator() { EmitMetadata = true }, [sb, "Numbers", schema, 0]);
 
         var output = sb.ToString();
         output.ShouldContain("// Items type: int");
@@ -118,7 +113,7 @@ public class BaseGeneratorGenerateMetadataTests
         };
 
         typeof(BaseGenerator)
-            .GetMethods(System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static)
+            .GetMethods(BindingFlags.NonPublic| BindingFlags.Instance)
             .First(m =>
             {
                 var parameters = m.GetParameters();
@@ -129,7 +124,7 @@ public class BaseGeneratorGenerateMetadataTests
                        && parameters[2].ParameterType == typeof(OpenApiSchema)
                        && parameters[3].ParameterType == typeof(int);
             })
-            .Invoke(null, [sb, "RefProp", schema, 0]);
+            .Invoke(new BaseGenerator() { EmitMetadata = true }, [sb, "RefProp", schema, 0]);
 
         var output = sb.ToString();
         output.ShouldContain("// Reference: #/components/schemas/OtherType");
@@ -149,7 +144,7 @@ public class BaseGeneratorGenerateMetadataTests
         };
 
         typeof(BaseGenerator)
-            .GetMethods(System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static)
+            .GetMethods(BindingFlags.NonPublic| BindingFlags.Instance)
             .First(m =>
             {
                 var parameters = m.GetParameters();
@@ -160,7 +155,7 @@ public class BaseGeneratorGenerateMetadataTests
                        && parameters[2].ParameterType == typeof(OpenApiSchema)
                        && parameters[3].ParameterType == typeof(int);
             })
-            .Invoke(null, [sb, "Person", schema, 0]);
+            .Invoke(new BaseGenerator() { EmitMetadata = true }, [sb, "Person", schema, 0]);
 
         var output = sb.ToString();
         output.ShouldContain("// Required properties:");
@@ -183,7 +178,7 @@ public class BaseGeneratorGenerateMetadataTests
         };
 
         typeof(BaseGenerator)
-            .GetMethods(System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static)
+            .GetMethods(BindingFlags.NonPublic| BindingFlags.Instance)
             .First(m =>
             {
                 var parameters = m.GetParameters();
@@ -194,7 +189,7 @@ public class BaseGeneratorGenerateMetadataTests
                        && parameters[2].ParameterType == typeof(OpenApiSchema)
                        && parameters[3].ParameterType == typeof(int);
             })
-            .Invoke(null, [sb, "Person", schema, 0]);
+            .Invoke(new BaseGenerator() { EmitMetadata = true }, [sb, "Person", schema, 0]);
 
         var output = sb.ToString();
         output.ShouldContain("// Properties:");
