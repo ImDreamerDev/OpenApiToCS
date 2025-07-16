@@ -340,7 +340,7 @@ public class OperationGenerator(DataClassGenerationResult dataClassGenerationRes
             }
         }
 
-        sb.AppendLine($"\t\tHttpRequestMessage httpRequest = new HttpRequestMessage(HttpMethod.{method}, \"{path}\" + queryBuilder);");
+        sb.AppendLine($"\t\tHttpRequestMessage httpRequest = new HttpRequestMessage(HttpMethod.{method}, \"{path.Remove(0, 1)}\" + queryBuilder);");
         if (hasApiVersionHeader)
             sb.AppendLine($"\t\thttpRequest.Headers.Add(\"api-version\", \"{document.Info.Version}\");");
 
