@@ -196,6 +196,12 @@ public class DataClassGenerator : BaseGenerator
         string name = GetClassNameFromKey(ownerName).ToTitleCase();
         var oneOfClasses = new List<Class>();
 
+        if (_generatedSchemas.Contains(name + "OneOf"))
+        {
+            Console.WriteLine($"OneOf class {name + "OneOf"} already generated for {ownerName}. Skipping generation.");
+            return null; // Already generated
+        }
+
         Class baseClass = GenerateRecord(name + "OneOf", nameSpace, name, new OpenApiSchema());
         oneOfClasses.Add(baseClass);
 
