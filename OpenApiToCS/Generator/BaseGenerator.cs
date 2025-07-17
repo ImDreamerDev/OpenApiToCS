@@ -68,7 +68,7 @@ public class BaseGenerator
         return result;
     }
 
-    protected string GetTypeFromKey(OpenApiSchema schema)
+    protected string GetTypeFromKey(OpenApiSchema schema, string owningType = "")
     {
         if (schema.Reference is not null)
             return GetClassNameFromKey(schema.Reference);
@@ -91,11 +91,29 @@ public class BaseGenerator
             "string" when format == "binary" => "byte[]",
             "string" when format == "uri" => "Uri",
             "string" when format is null or "string" => "string",
-            "array" => schema.Items != null
-                ? $"{GetTypeFromKey(schema.Items)}[]"
-                : "object[]",
+            "array" => GetArrayType(owningType, schema.Items),
             _ => throw new NotImplementedException($"The schema type {type} is not implemented.")
         };
+    }
+
+    private string GetArrayType(string owningType, OpenApiSchema? schema)
+    {
+        if (schema is null)
+            return "object[]";
+
+        if (schema.Reference is not null)
+        {
+            return GetTypeFromKey(schema) + "[]";
+        }
+        
+        if(schema.Type is not null && schema.Type is not "object")
+        {
+            return GetTypeFromKey(schema) + "[]";
+        }
+
+        string? type = owningType.ToTitleCase() + "Item";
+        return type + "[]";
+
     }
 
     protected bool IsReferenceType(OpenApiSchema schema)

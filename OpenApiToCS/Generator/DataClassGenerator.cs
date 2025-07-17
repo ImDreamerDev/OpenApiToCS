@@ -118,6 +118,7 @@ public class DataClassGenerator : BaseGenerator
             {
                 Property prop = GenerateProperty(sb, property, schema, className);
                 properties.Add(prop);
+
                 if (property.Value.Items?.OneOf == null)
                     continue;
 
@@ -159,7 +160,7 @@ public class DataClassGenerator : BaseGenerator
                 propertyType = property.Key.ToTitleCase() + "OneOf[]";
             }
             else
-                propertyType = GetTypeFromKey(property.Value);
+                propertyType = GetTypeFromKey(property.Value, property.Key);
         }
         else if (property.Value.Reference is not null)
         {
@@ -182,6 +183,11 @@ public class DataClassGenerator : BaseGenerator
 
         sb.AppendLine($"\tpublic {propertyType}{(property.Value.Nullable ? "?" : "")} {propertyName} {{ get; init; }}");
         sb.AppendLine();
+
+        if (property.Value.Items is not null && property.Value.Items.Type == "object" && property.Value.Items.Reference is null && property.Value.Items.OneOf is null)
+        {
+            _missingSchemasToGenerate.Enqueue((propertyName + "Item", property.Value.Items));
+        }
 
         return new Property(propertyName, propertyType, isRequired, property.Value.Nullable, property.Value.Description);
     }
