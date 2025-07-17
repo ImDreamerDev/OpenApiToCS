@@ -48,7 +48,7 @@ public class BaseGeneratorTests
         OpenApiSchema schema = new OpenApiSchema { Type = type, Format = format };
         var result = typeof(BaseGenerator)
             .GetMethod("GetTypeFromKey", BindingFlags.NonPublic | BindingFlags.Instance)!
-            .Invoke(new BaseGenerator(), [schema]) as string;
+            .Invoke(new BaseGenerator(), [schema, null]) as string;
         result.ShouldBe(expected);
     }
 
@@ -62,7 +62,7 @@ public class BaseGeneratorTests
         };
         var result = typeof(BaseGenerator)
             .GetMethod("GetTypeFromKey", BindingFlags.NonPublic | BindingFlags.Instance)!
-            .Invoke(new BaseGenerator(), [schema]) as string;
+            .Invoke(new BaseGenerator(), [schema, null]) as string;
         result.ShouldBe("string[]");
     }
 
@@ -74,7 +74,7 @@ public class BaseGeneratorTests
         {
             typeof(BaseGenerator)
                 .GetMethod("GetTypeFromKey", BindingFlags.NonPublic | BindingFlags.Instance)!
-                .Invoke(new BaseGenerator(), [schema]);
+                .Invoke(new BaseGenerator(), [schema, null]);
         });
     }
 
@@ -84,7 +84,7 @@ public class BaseGeneratorTests
         OpenApiSchema schema = new OpenApiSchema { Reference = "#/components/schemas/RefType" };
         var result = typeof(BaseGenerator)
             .GetMethod("GetTypeFromKey", BindingFlags.NonPublic | BindingFlags.Instance)!
-            .Invoke(new BaseGenerator(), [schema]) as string;
+            .Invoke(new BaseGenerator(), [schema, null]) as string;
         result.ShouldBe("RefType");
     }
 

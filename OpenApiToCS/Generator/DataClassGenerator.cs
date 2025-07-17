@@ -20,7 +20,7 @@ public class DataClassGenerator : BaseGenerator
                 Console.Error.WriteLine("Unsupported schema type: " + schema.Value.Type + " for key: " + schema.Key);
                 continue;
             }
-            if (schema.Value.Type is not "object" and not "array")
+            if (schema.Value.Type is not "object" and not "array" and not "string")
             {
                 Console.Error.WriteLine("Unsupported schema type: " + schema.Value.Type + " for key: " + schema.Key);
                 continue;
