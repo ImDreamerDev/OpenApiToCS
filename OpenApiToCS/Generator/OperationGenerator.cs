@@ -213,6 +213,15 @@ public class OperationGenerator(DataClassGenerationResult dataClassGenerationRes
             {
                 ArgumentNullException.ThrowIfNull(successfulContent);
                 string returnType = GetTypeFromKey(successfulContent.Value.Value.Schema);
+                if (successfulContent.Value.Value.Schema.Reference is not null)
+                {
+                    var schema = document.Components.Schemas[GetClassNameFromKey(successfulContent.Value.Value.Schema.Reference)];
+
+                    if (schema.Type is not "object" and not "array")
+                    {
+                        returnType = GetTypeFromKey(schema);
+                    }
+                }
                 sb.Append("\tpublic async Task<" + returnType + (canBeNull ? "?" : "") + "> " + method + methodName + "(");
                 hasReturnType = true;
             }
@@ -357,6 +366,15 @@ public class OperationGenerator(DataClassGenerationResult dataClassGenerationRes
         {
             ArgumentNullException.ThrowIfNull(successfulContent);
             string returnType = GetTypeFromKey(successfulContent.Value.Value.Schema);
+            if (successfulContent.Value.Value.Schema.Reference is not null)
+            {
+                var schema = document.Components.Schemas[GetClassNameFromKey(successfulContent.Value.Value.Schema.Reference)];
+
+                if (schema.Type is not "object" and not "array")
+                {
+                    returnType = GetTypeFromKey(schema);
+                }
+            }
             sb.AppendLine($"\t\t\tvar result = await response.Content.ReadFromJsonAsync<{returnType}>(options: jsonSerializerOptions);");
             sb.AppendLine("\t\t\tif (result is null && allowNullOrEmptyResponse)");
             sb.AppendLine("\t\t\t{");

@@ -15,11 +15,17 @@ public class DataClassGenerator : BaseGenerator
         string namespaceName = GetClassNameFromKey(document.Info.Title).ToTitleCase() + "ApiClient" + "V" + document.Info.Version[0] + ".Models";
         foreach (var schema in document.Components.Schemas)
         {
-            if (schema.Value.Type is not null and not "object" && schema.Value is { Type: not "string", Enum: null })
+            if (schema.Value.Type is not null and not "object" && schema.Value is { Type: not "string", Enum: null, Items: null })
             {
                 Console.Error.WriteLine("Unsupported schema type: " + schema.Value.Type + " for key: " + schema.Key);
                 continue;
             }
+            if (schema.Value.Type is not "object" and not "array")
+            {
+                Console.Error.WriteLine("Unsupported schema type: " + schema.Value.Type + " for key: " + schema.Key);
+                continue;
+            }
+                
 
             string className = GetClassNameFromKey(schema.Key).ToTitleCase();
             if (className is "ProblemDetails" or "HttpValidationProblemDetails" or "ExceptionProblemDetails")
@@ -38,8 +44,14 @@ public class DataClassGenerator : BaseGenerator
                 _result.Classes.Add(className, @class);
                 continue;
             }
-
-            @class = GenerateRecord(className, namespaceName, schema.Key, schema.Value);
+            if (schema.Value.Items is not null && schema.Value.Type == "array" && schema.Value.Items.Type == "object" && schema.Value.Items.Properties is not null && schema.Value.Items.Reference is null)
+            {
+                @class = GenerateRecord(className, namespaceName, schema.Key, schema.Value.Items);
+            }
+            else
+            {
+                @class = GenerateRecord(className, namespaceName, schema.Key, schema.Value);
+            }
             _result.Classes.Add(className, @class);
         }
 

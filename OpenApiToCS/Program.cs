@@ -30,9 +30,18 @@ var apiClasses = new OperationGenerator(dataClasses).GenerateApiClasses(obj);
 Directory.CreateDirectory("code/Models");
 Directory.CreateDirectory("code/Api");
 
+int index = 0;
 foreach (var dataClass in dataClasses.Classes)
 {
-    File.WriteAllText("code/Models/" + dataClass.Key + ".cs", dataClass.Value.Source);
+    // If the platform is Windows, append the index to the filename, to avoid conflicts with the same class name but in different capitalization.
+    if (Environment.OSVersion.Platform is PlatformID.Win32NT or PlatformID.Win32Windows or PlatformID.Win32S)
+    {
+        File.WriteAllText("code/Models/" + dataClass.Key + index + ".cs", dataClass.Value.Source);
+    }
+    else
+    {
+        File.WriteAllText("code/Models/" + dataClass.Key + ".cs", dataClass.Value.Source);
+    }
     foreach (OneOfConverter oneOfConverter in dataClass.Value.OneOfConverters)
     {
         File.WriteAllText("code/Models/" + oneOfConverter.Name + ".cs", oneOfConverter.Source);
@@ -41,6 +50,7 @@ foreach (var dataClass in dataClasses.Classes)
             File.WriteAllText("code/Models/" + oneOf.Name + ".cs", oneOf.Source);
         }
     }
+    index++;
 }
 
 foreach (var apiClass in apiClasses)
