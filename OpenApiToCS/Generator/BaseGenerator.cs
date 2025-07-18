@@ -3,10 +3,11 @@ using OpenApiToCS.OpenApi;
 
 namespace OpenApiToCS.Generator;
 
-public class BaseGenerator
+public class BaseGenerator(OpenApiDocument document)
 {
     // Enable this to emit metadata comments in the generated code.
     public bool EmitMetadata = false;
+    protected readonly OpenApiDocument Document = document;
 
     protected StringBuilder GenerateSummary(StringBuilder sb, string? summary)
     {
@@ -111,18 +112,24 @@ public class BaseGenerator
             return GetTypeFromKey(schema) + "[]";
         }
 
-        string? type = owningType.ToTitleCase() + "Item";
+        string type = owningType.ToTitleCase();
         return type + "[]";
 
     }
 
-    protected bool IsReferenceType(OpenApiSchema schema)
+    protected static bool IsReferenceType(OpenApiSchema schema)
     {
         if (schema.Reference is not null)
             return true;
 
-        string? type = schema.Type;
-        string? format = schema.Format;
+        var type = schema.Type;
+        var format = schema.Format;
+
+        if (schema.Nullable)
+            return true;
+
+        if (schema.Enum is not null)
+            return true;
 
         return type switch
         {
@@ -260,5 +267,14 @@ public class BaseGenerator
         }
 
         return sb;
+    }
+
+    protected OpenApiSchema? GetSchemaFromReference(string reference)
+    {
+        if (string.IsNullOrEmpty(reference))
+            return null;
+
+        string className = reference.Replace("#/components/schemas/", "");
+        return Document.Components.Schemas.GetValueOrDefault(className);
     }
 }

@@ -33,7 +33,11 @@ public class BaseGeneratorGenerateMetadataOperationTests
             Summary = "Gets a user"
         };
 
-        var baseGenerator = new BaseGenerator() { EmitMetadata = true };
+        var baseGenerator = new BaseGenerator(new OpenApiDocument {OpenApiVersion = "1.0",Components = new OpenApiComponents(),Info = new OpenApiInfo
+        {
+            Title = "Test API",
+            Version = "1.0"
+        }}) { EmitMetadata = true };
         GetOperationMetadataMethod().Invoke(baseGenerator, [sb, "getUser", operation, 0]);
 
         var output = sb.ToString();
@@ -60,7 +64,11 @@ public class BaseGeneratorGenerateMetadataOperationTests
             }
         };
 
-        var baseGenerator = new BaseGenerator() { EmitMetadata = true };
+        var baseGenerator = new BaseGenerator(new OpenApiDocument {OpenApiVersion = "1.0",Components = new OpenApiComponents(),Info = new OpenApiInfo
+        {
+            Title = "Test API",
+            Version = "1.0"
+        }}) { EmitMetadata = true };
         GetOperationMetadataMethod().Invoke(baseGenerator, [sb, "createUser", operation, 0]);
 
         var output = sb.ToString();
@@ -89,7 +97,11 @@ public class BaseGeneratorGenerateMetadataOperationTests
             ]
         };
 
-        var baseGenerator = new BaseGenerator() { EmitMetadata = true };
+        var baseGenerator = new BaseGenerator(new OpenApiDocument {OpenApiVersion = "1.0",Components = new OpenApiComponents(),Info = new OpenApiInfo
+        {
+            Title = "Test API",
+            Version = "1.0"
+        }}) { EmitMetadata = true };
         GetOperationMetadataMethod().Invoke(baseGenerator, [sb, "getUser", operation, 0]);
 
         var output = sb.ToString();
@@ -123,7 +135,11 @@ public class BaseGeneratorGenerateMetadataOperationTests
             }
         };
 
-        var baseGenerator = new BaseGenerator() { EmitMetadata = true };
+        var baseGenerator = new BaseGenerator(new OpenApiDocument {OpenApiVersion = "1.0",Components = new OpenApiComponents(),Info = new OpenApiInfo
+        {
+            Title = "Test API",
+            Version = "1.0"
+        }}) { EmitMetadata = true };
         GetOperationMetadataMethod().Invoke(baseGenerator, [sb, "getUser", operation, 0]);
 
         var output = sb.ToString();

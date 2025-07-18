@@ -30,7 +30,11 @@ public class BaseGeneratorGenerateMetadataTests
                        && parameters[2].ParameterType == typeof(OpenApiSchema)
                        && parameters[3].ParameterType == typeof(int);
             })
-            .Invoke(new BaseGenerator() { EmitMetadata = true }, [sb, "Id", schema, 0]);
+            .Invoke(new BaseGenerator(new OpenApiDocument {OpenApiVersion = "1.0",Components = new OpenApiComponents(),Info = new OpenApiInfo
+            {
+                Title = "Test API",
+                Version = "1.0"
+            }}) { EmitMetadata = true }, [sb, "Id", schema, 0]);
 
         var output = sb.ToString();
         output.ShouldContain("// Schema: Id");
@@ -66,7 +70,11 @@ public class BaseGeneratorGenerateMetadataTests
                        && parameters[2].ParameterType == typeof(OpenApiSchema)
                        && parameters[3].ParameterType == typeof(int);
             })
-            .Invoke(new BaseGenerator() { EmitMetadata = true }, [sb, "Status", schema, 0]);
+            .Invoke(new BaseGenerator(new OpenApiDocument {OpenApiVersion = "1.0",Components = new OpenApiComponents(),Info = new OpenApiInfo
+            {
+                Title = "Test API",
+                Version = "1.0"
+            }}) { EmitMetadata = true }, [sb, "Status", schema, 0]);
 
         var output = sb.ToString();
         output.ShouldContain("// Enum values:");
@@ -97,7 +105,11 @@ public class BaseGeneratorGenerateMetadataTests
                        && parameters[2].ParameterType == typeof(OpenApiSchema)
                        && parameters[3].ParameterType == typeof(int);
             })
-            .Invoke(new BaseGenerator() { EmitMetadata = true }, [sb, "Numbers", schema, 0]);
+            .Invoke(new BaseGenerator(new OpenApiDocument {OpenApiVersion = "1.0",Components = new OpenApiComponents(),Info = new OpenApiInfo
+            {
+                Title = "Test API",
+                Version = "1.0"
+            }}) { EmitMetadata = true }, [sb, "Numbers", schema, 0]);
 
         var output = sb.ToString();
         output.ShouldContain("// Items type: int");
@@ -124,7 +136,11 @@ public class BaseGeneratorGenerateMetadataTests
                        && parameters[2].ParameterType == typeof(OpenApiSchema)
                        && parameters[3].ParameterType == typeof(int);
             })
-            .Invoke(new BaseGenerator() { EmitMetadata = true }, [sb, "RefProp", schema, 0]);
+            .Invoke(new BaseGenerator(new OpenApiDocument {OpenApiVersion = "1.0",Components = new OpenApiComponents(),Info = new OpenApiInfo
+            {
+                Title = "Test API",
+                Version = "1.0"
+            }}) { EmitMetadata = true }, [sb, "RefProp", schema, 0]);
 
         var output = sb.ToString();
         output.ShouldContain("// Reference: #/components/schemas/OtherType");
@@ -155,7 +171,11 @@ public class BaseGeneratorGenerateMetadataTests
                        && parameters[2].ParameterType == typeof(OpenApiSchema)
                        && parameters[3].ParameterType == typeof(int);
             })
-            .Invoke(new BaseGenerator() { EmitMetadata = true }, [sb, "Person", schema, 0]);
+            .Invoke(new BaseGenerator(new OpenApiDocument {OpenApiVersion = "1.0",Components = new OpenApiComponents(),Info = new OpenApiInfo
+            {
+                Title = "Test API",
+                Version = "1.0"
+            }}) { EmitMetadata = true }, [sb, "Person", schema, 0]);
 
         var output = sb.ToString();
         output.ShouldContain("// Required properties:");
@@ -189,7 +209,11 @@ public class BaseGeneratorGenerateMetadataTests
                        && parameters[2].ParameterType == typeof(OpenApiSchema)
                        && parameters[3].ParameterType == typeof(int);
             })
-            .Invoke(new BaseGenerator() { EmitMetadata = true }, [sb, "Person", schema, 0]);
+            .Invoke(new BaseGenerator(new OpenApiDocument {OpenApiVersion = "1.0",Components = new OpenApiComponents(),Info = new OpenApiInfo
+            {
+                Title = "Test API",
+                Version = "1.0"
+            }}) { EmitMetadata = true }, [sb, "Person", schema, 0]);
 
         var output = sb.ToString();
         output.ShouldContain("// Properties:");

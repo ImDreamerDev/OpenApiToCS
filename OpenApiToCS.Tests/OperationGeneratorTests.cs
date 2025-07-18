@@ -30,8 +30,8 @@ public class OperationGeneratorTests
             }
         };
 
-        var dataClasses = new DataClassGenerator().GenerateDataClasses(doc);
-        var result = new OperationGenerator(dataClasses).GenerateApiClasses(doc);
+        var dataClasses = new DataClassGenerator(doc).GenerateDataClasses();
+        var result = new OperationGenerator(doc, dataClasses).GenerateApiClasses();
 
         result.Keys.ShouldContain("UsersClientV1");
         result.Keys.ShouldContain("OrdersClientV1");
@@ -59,8 +59,8 @@ public class OperationGeneratorTests
             }
         };
 
-        var dataClasses = new DataClassGenerator().GenerateDataClasses(doc);
-        var result = new OperationGenerator(dataClasses).GenerateApiClasses(doc);
+        var dataClasses = new DataClassGenerator(doc).GenerateDataClasses();
+        var result = new OperationGenerator(doc, dataClasses).GenerateApiClasses();
 
         result.Keys.ShouldContain("FooClientV2");
         result["FooClientV2"].ShouldContain("namespace MyServiceApiClientV2;");
@@ -86,8 +86,8 @@ public class OperationGeneratorTests
             }
         };
 
-        var dataClasses = new DataClassGenerator().GenerateDataClasses(doc);
-        var result = new OperationGenerator(dataClasses).GenerateApiClasses(doc);
+        var dataClasses = new DataClassGenerator(doc).GenerateDataClasses();
+        var result = new OperationGenerator(doc, dataClasses).GenerateApiClasses();
 
         result["NoClientV1"].ShouldNotContain("public async Task");
     }
@@ -122,8 +122,8 @@ public class OperationGeneratorTests
             }
         };
 
-        var dataClasses = new DataClassGenerator().GenerateDataClasses(doc);
-        var result = new OperationGenerator(dataClasses).GenerateApiClasses(doc);
+        var dataClasses = new DataClassGenerator(doc).GenerateDataClasses();
+        var result = new OperationGenerator(doc, dataClasses).GenerateApiClasses();
 
         var code = result["AllClientV1"];
         code.ShouldContain("public async Task<string> GetMethods(");
@@ -153,8 +153,8 @@ public class OperationGeneratorTests
             }
         };
 
-        var generator = new OperationGenerator(new DataClassGenerationResult(), true);
-        var result = generator.GenerateApiClasses(document);
+        var generator = new OperationGenerator(document, new DataClassGenerationResult(), true);
+        var result = generator.GenerateApiClasses();
 
         result.Keys.ShouldContain("TestApiClientV1");
         result["TestApiClientV1"].ShouldContain("namespace TestApiApiClientV1;");
@@ -178,8 +178,8 @@ public class OperationGeneratorTests
             }
         };
 
-        var generator = new OperationGenerator(new DataClassGenerationResult(), true);
-        var result = generator.GenerateApiClasses(document);
+        var generator = new OperationGenerator(document, new DataClassGenerationResult(), true);
+        var result = generator.GenerateApiClasses();
 
         result.Keys.ShouldContain("EmptyApiClientV1");
         result["EmptyApiClientV1"].ShouldNotContain("public async Task");
@@ -208,8 +208,8 @@ public class OperationGeneratorTests
             }
         };
 
-        var generator = new OperationGenerator(new DataClassGenerationResult(), true);
-        var result = generator.GenerateApiClasses(document);
+        var generator = new OperationGenerator(document, new DataClassGenerationResult(), true);
+        var result = generator.GenerateApiClasses();
 
         result["NoSuccessApiClientV1"].ShouldNotContain("public async Task GetNoSuccess(");
     }
@@ -252,8 +252,8 @@ public class OperationGeneratorTests
             }
         };
 
-        var generator = new OperationGenerator(new DataClassGenerationResult(), true);
-        var result = generator.GenerateApiClasses(document);
+        var generator = new OperationGenerator(document, new DataClassGenerationResult(), true);
+        var result = generator.GenerateApiClasses();
 
         result["NullableApiClientV1"].ShouldContain("public async Task<string?> GetNullable(");
     }
@@ -272,8 +272,8 @@ public class OperationGeneratorTests
     public void GenerateApiClasses_Should_Produce_Expected_Client_And_Methods_For_DarApi()
     {
         var doc = LoadDarDocument();
-        var dataClasses = new DataClassGenerator().GenerateDataClasses(doc);
-        var result = new OperationGenerator(dataClasses, true).GenerateApiClasses(doc);
+        var dataClasses = new DataClassGenerator(doc).GenerateDataClasses();
+        var result = new OperationGenerator(doc, dataClasses, true).GenerateApiClasses();
 
         // Check expected client class name
         result.Keys.ShouldContain("DatafordelerenHaendelserAPIClientV1");

@@ -5,22 +5,22 @@ using OpenApiToCS.OpenApi;
 
 namespace OpenApiToCS.Generator;
 
-public class OperationGenerator(DataClassGenerationResult dataClassGenerationResult, bool monoClient = false) : BaseGenerator
+public class OperationGenerator(OpenApiDocument document, DataClassGenerationResult dataClassGenerationResult, bool monoClient = false) : BaseGenerator(document)
 {
-    public Dictionary<string, string> GenerateApiClasses(OpenApiDocument document)
+    public Dictionary<string, string> GenerateApiClasses()
     {
-        return monoClient ? GenerateMonoApiClass(document) : GeneratePolyApiClasses(document);
+        return monoClient ? GenerateMonoApiClass() : GeneratePolyApiClasses();
     }
 
 
-    private Dictionary<string, string> GenerateMonoApiClass(OpenApiDocument document)
+    private Dictionary<string, string> GenerateMonoApiClass()
     {
         var result = new Dictionary<string, string>();
-        char version = document.Info.Version[0];
-        string namespaceName = GetClassNameFromKey(document.Info.Title).ToTitleCase() + "ApiClientV" + version;
+        char version = Document.Info.Version[0];
+        string namespaceName = GetClassNameFromKey(Document.Info.Title).ToTitleCase() + "ApiClientV" + version;
         StringBuilder classSb = new StringBuilder();
 
-        string className = GetClassNameFromKey(document.Info.Title).ToTitleCase() + "ClientV" + version;
+        string className = GetClassNameFromKey(Document.Info.Title).ToTitleCase() + "ClientV" + version;
         classSb.AppendLine("using System.Diagnostics;");
         classSb.AppendLine("using System.Net.Http.Json;");
         classSb.AppendLine("using System.Text.Json;");
@@ -32,47 +32,47 @@ public class OperationGenerator(DataClassGenerationResult dataClassGenerationRes
         classSb.AppendLine();
         classSb.AppendLine($"namespace {namespaceName};");
         classSb.AppendLine();
-        classSb.AppendLine($"// Generated API class for {document.Info.Title}");
+        classSb.AppendLine($"// Generated API class for {Document.Info.Title}");
         classSb.AppendLine($"public class {className}(HttpClient httpClient)");
         classSb.AppendLine("{");
 
-        foreach (var path in document.Paths)
+        foreach (var path in Document.Paths)
         {
             if (path.Value.Get is not null)
             {
-                classSb = GenerateOperationCode(classSb, document, path.Key, path.Value.Get, HttpMethod.Get);
+                classSb = GenerateOperationCode(classSb, path.Key, path.Value.Get, HttpMethod.Get);
             }
             if (path.Value.Post is not null)
             {
-                classSb = GenerateOperationCode(classSb, document, path.Key, path.Value.Post, HttpMethod.Post);
+                classSb = GenerateOperationCode(classSb, path.Key, path.Value.Post, HttpMethod.Post);
             }
             if (path.Value.Put is not null)
             {
-                classSb = GenerateOperationCode(classSb, document, path.Key, path.Value.Put, HttpMethod.Put);
+                classSb = GenerateOperationCode(classSb, path.Key, path.Value.Put, HttpMethod.Put);
             }
             if (path.Value.Delete is not null)
             {
-                classSb = GenerateOperationCode(classSb, document, path.Key, path.Value.Delete, HttpMethod.Delete);
+                classSb = GenerateOperationCode(classSb, path.Key, path.Value.Delete, HttpMethod.Delete);
             }
 
             if (path.Value.Patch is not null)
             {
-                classSb = GenerateOperationCode(classSb, document, path.Key, path.Value.Patch, HttpMethod.Patch);
+                classSb = GenerateOperationCode(classSb, path.Key, path.Value.Patch, HttpMethod.Patch);
             }
 
             if (path.Value.Head is not null)
             {
-                classSb = GenerateOperationCode(classSb, document, path.Key, path.Value.Head, HttpMethod.Head);
+                classSb = GenerateOperationCode(classSb, path.Key, path.Value.Head, HttpMethod.Head);
             }
 
             if (path.Value.Options is not null)
             {
-                classSb = GenerateOperationCode(classSb, document, path.Key, path.Value.Options, HttpMethod.Options);
+                classSb = GenerateOperationCode(classSb, path.Key, path.Value.Options, HttpMethod.Options);
             }
 
             if (path.Value.Trace is not null)
             {
-                classSb = GenerateOperationCode(classSb, document, path.Key, path.Value.Trace, HttpMethod.Trace);
+                classSb = GenerateOperationCode(classSb, path.Key, path.Value.Trace, HttpMethod.Trace);
             }
         }
 
@@ -83,12 +83,12 @@ public class OperationGenerator(DataClassGenerationResult dataClassGenerationRes
         return result;
     }
 
-    private Dictionary<string, string> GeneratePolyApiClasses(OpenApiDocument document)
+    private Dictionary<string, string> GeneratePolyApiClasses()
     {
         var result = new Dictionary<string, string>();
-        char version = document.Info.Version[0];
-        string namespaceName = GetClassNameFromKey(document.Info.Title).ToTitleCase() + "ApiClientV" + version;
-        var groups = document.Paths
+        char version = Document.Info.Version[0];
+        string namespaceName = GetClassNameFromKey(Document.Info.Title).ToTitleCase() + "ApiClientV" + version;
+        var groups = Document.Paths
             .GroupBy(path => path.Key.Split('/')[1]) // Group by the first segment of the path
             .ToDictionary(g => g.Key, g => g.ToList());
 
@@ -116,39 +116,39 @@ public class OperationGenerator(DataClassGenerationResult dataClassGenerationRes
             {
                 if (path.Value.Get is not null)
                 {
-                    classSb = GenerateOperationCode(classSb, document, path.Key, path.Value.Get, HttpMethod.Get);
+                    classSb = GenerateOperationCode(classSb, path.Key, path.Value.Get, HttpMethod.Get);
                 }
                 if (path.Value.Post is not null)
                 {
-                    classSb = GenerateOperationCode(classSb, document, path.Key, path.Value.Post, HttpMethod.Post);
+                    classSb = GenerateOperationCode(classSb, path.Key, path.Value.Post, HttpMethod.Post);
                 }
                 if (path.Value.Put is not null)
                 {
-                    classSb = GenerateOperationCode(classSb, document, path.Key, path.Value.Put, HttpMethod.Put);
+                    classSb = GenerateOperationCode(classSb, path.Key, path.Value.Put, HttpMethod.Put);
                 }
                 if (path.Value.Delete is not null)
                 {
-                    classSb = GenerateOperationCode(classSb, document, path.Key, path.Value.Delete, HttpMethod.Delete);
+                    classSb = GenerateOperationCode(classSb, path.Key, path.Value.Delete, HttpMethod.Delete);
                 }
 
                 if (path.Value.Patch is not null)
                 {
-                    classSb = GenerateOperationCode(classSb, document, path.Key, path.Value.Patch, HttpMethod.Patch);
+                    classSb = GenerateOperationCode(classSb, path.Key, path.Value.Patch, HttpMethod.Patch);
                 }
 
                 if (path.Value.Head is not null)
                 {
-                    classSb = GenerateOperationCode(classSb, document, path.Key, path.Value.Head, HttpMethod.Head);
+                    classSb = GenerateOperationCode(classSb, path.Key, path.Value.Head, HttpMethod.Head);
                 }
 
                 if (path.Value.Options is not null)
                 {
-                    classSb = GenerateOperationCode(classSb, document, path.Key, path.Value.Options, HttpMethod.Options);
+                    classSb = GenerateOperationCode(classSb, path.Key, path.Value.Options, HttpMethod.Options);
                 }
 
                 if (path.Value.Trace is not null)
                 {
-                    classSb = GenerateOperationCode(classSb, document, path.Key, path.Value.Trace, HttpMethod.Trace);
+                    classSb = GenerateOperationCode(classSb, path.Key, path.Value.Trace, HttpMethod.Trace);
                 }
             }
 
@@ -160,9 +160,17 @@ public class OperationGenerator(DataClassGenerationResult dataClassGenerationRes
         return result;
     }
 
-    private StringBuilder GenerateOperationCode(StringBuilder sb, OpenApiDocument document, string path, OpenApiOperation operation, HttpMethod httpMethod)
+    private StringBuilder GenerateOperationCode(StringBuilder sb, string path, OpenApiOperation operation, HttpMethod httpMethod)
     {
-        string methodName = GetMethodNameFromPath(path).ToTitleCase();
+        string methodName;
+        if (monoClient is false)
+        {
+            methodName = GetMethodNameFromPath(path).ToTitleCase();
+        }
+        else
+        {
+            methodName = GetMonoMethodNameFromPath(path).ToTitleCase();
+        }
         sb = GenerateMetadata(sb, path, operation);
 
         string method = httpMethod.Method switch
@@ -215,11 +223,11 @@ public class OperationGenerator(DataClassGenerationResult dataClassGenerationRes
                 string returnType = GetTypeFromKey(successfulContent.Value.Value.Schema);
                 if (successfulContent.Value.Value.Schema.Reference is not null)
                 {
-                    var schema = document.Components.Schemas[GetClassNameFromKey(successfulContent.Value.Value.Schema.Reference)];
+                    var schema = GetSchemaFromReference(successfulContent.Value.Value.Schema.Reference);
 
-                    if (schema.Type is not "object" and not "array")
+                    if (schema is not null && schema.Type is not "object")
                     {
-                        returnType = GetTypeFromKey(schema);
+                        returnType = GetTypeFromKey(schema, successfulContent.Value.Value.Schema.Reference.Split("/")[^1]);
                     }
                 }
                 sb.Append("\tpublic async Task<" + returnType + (canBeNull ? "?" : "") + "> " + method + methodName + "(");
@@ -255,15 +263,15 @@ public class OperationGenerator(DataClassGenerationResult dataClassGenerationRes
                     case "header":
                         if (parameter.Required)
                         {
-                            parameters.Add($"{GetTypeFromKey(parameter.Schema)} {parameter.Name}");
+                            parameters.Add($"{GetTypeFromKey(parameter.Schema)} {parameter.Name.FirstCharToLower()}");
                         }
                         else
                         {
-                            optionalParameters.Add($"{GetTypeFromKey(parameter.Schema)}? {parameter.Name} = null");
+                            optionalParameters.Add($"{GetTypeFromKey(parameter.Schema)}? {parameter.Name.FirstCharToLower()} = null");
                         }
                         break;
                     default:
-                        Console.Error.WriteLine($"Warning: Unsupported parameter location '{parameter.In}' for parameter '{parameter.Name}' at path {path}");
+                        Console.Error.WriteLine($"Warning: Unsupported parameter location '{parameter.In}' for parameter '{parameter.Name.FirstCharToLower()}' at path {path}");
                         break;
                 }
             }
@@ -335,23 +343,24 @@ public class OperationGenerator(DataClassGenerationResult dataClassGenerationRes
 
                 if (parameter.Required is false)
                 {
-                    sb.AppendLine($"\t\tif ({parameter.Name} is not null)");
+                    sb.AppendLine($"\t\tif ({parameter.Name.FirstCharToLower()} is not null)");
                 }
 
-                if (IsReferenceType(parameter.Schema))
+                var schema = parameter.Schema;
+                if (IsReferenceType(schema) || parameter.Required is true)
                 {
-                    sb.AppendLine($"\t\t\tqueryBuilder.Add(\"{parameter.Name}\", {parameter.Name});");
+                    sb.AppendLine($"\t\t\tqueryBuilder.Add(\"{parameter.Name}\", {parameter.Name.FirstCharToLower()}.ToString());");
                 }
                 else
                 {
-                    sb.AppendLine($"\t\t\tqueryBuilder.Add(\"{parameter.Name}\", {parameter.Name}.Value.ToString());");
+                    sb.AppendLine($"\t\t\tqueryBuilder.Add(\"{parameter.Name}\", {parameter.Name.FirstCharToLower()}.Value.ToString());");
                 }
             }
         }
 
-        sb.AppendLine($"\t\tHttpRequestMessage httpRequest = new HttpRequestMessage(HttpMethod.{method}, \"{path.Remove(0, 1)}\" + queryBuilder);");
+        sb.AppendLine($"\t\tHttpRequestMessage httpRequest = new HttpRequestMessage(HttpMethod.{method}, $\"{path.Remove(0, 1)}\" + queryBuilder);");
         if (hasApiVersionHeader)
-            sb.AppendLine($"\t\thttpRequest.Headers.Add(\"api-version\", \"{document.Info.Version}\");");
+            sb.AppendLine($"\t\thttpRequest.Headers.Add(\"api-version\", \"{Document.Info.Version}\");");
 
         if (bodyName is not null)
         {
@@ -368,14 +377,16 @@ public class OperationGenerator(DataClassGenerationResult dataClassGenerationRes
             string returnType = GetTypeFromKey(successfulContent.Value.Value.Schema);
             if (successfulContent.Value.Value.Schema.Reference is not null)
             {
-                var schema = document.Components.Schemas[GetClassNameFromKey(successfulContent.Value.Value.Schema.Reference)];
+                var schema = GetSchemaFromReference(successfulContent.Value.Value.Schema.Reference);
 
-                if (schema.Type is not "object" and not "array")
+                if (schema is not null && schema.Type is not "object")
                 {
-                    returnType = GetTypeFromKey(schema);
+                    returnType = GetTypeFromKey(schema, successfulContent.Value.Value.Schema.Reference.Split("/")[^1]);
                 }
             }
-            sb.AppendLine($"\t\t\tvar result = await response.Content.ReadFromJsonAsync<{returnType}>(options: jsonSerializerOptions);");
+
+            sb.AppendLine($"\t\t\tvar content = await response.Content.ReadAsStringAsync();");
+            sb.AppendLine($"\t\t\tvar result = JsonSerializer.Deserialize<{returnType}>(content);");
             sb.AppendLine("\t\t\tif (result is null && allowNullOrEmptyResponse)");
             sb.AppendLine("\t\t\t{");
             sb.AppendLine(successfulContent.Value.Value.Schema.Type == "array" ? "\t\t\t\treturn [];" : "\t\t\t\treturn null!;");
@@ -421,6 +432,23 @@ public class OperationGenerator(DataClassGenerationResult dataClassGenerationRes
         sb.AppendLine("\t\tresponse.EnsureSuccessStatusCode();");
         sb.AppendLine("\t}");
         return sb.ToString();
+    }
+
+    private static string GetMonoMethodNameFromPath(string? key)
+    {
+
+        //I want to have to two last pars of the string /individer/{id}/forbrugssteder/mapped
+
+
+
+        if (string.IsNullOrEmpty(key))
+            return "object";
+
+        string[] segments = key.Substring(1).Split('/');
+        if (segments.Length < 2)
+            return segments[^1].ToTitleCase();
+
+        return segments[^2].Replace("{", "").Replace("}", "").Replace(".", "").Replace(" ", "").Replace("-", "").ToTitleCase() + segments[^1].Replace("{", "").Replace("}", "").Replace(".", "").Replace(" ", "").Replace("-", "").ToTitleCase();
     }
 
     private static string GetMethodNameFromPath(string? key)

@@ -32,5 +32,7 @@ public class OpenApiSchema
     public OpenApiSchema? Items { get; init; }
     [JsonPropertyName("oneOf")]
     public OpenApiSchema[]? OneOf { get; init; }
+    [JsonPropertyName("allOf")]
+    public OpenApiSchema[]? AllOf { get; init; }
 
 }

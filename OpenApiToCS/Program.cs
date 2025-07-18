@@ -24,8 +24,8 @@ if (obj is null)
     return;
 }
 
-var dataClasses = new DataClassGenerator().GenerateDataClasses(obj);
-var apiClasses = new OperationGenerator(dataClasses).GenerateApiClasses(obj);
+var dataClasses = new DataClassGenerator(obj).GenerateDataClasses();
+var apiClasses = new OperationGenerator(obj, dataClasses, true).GenerateApiClasses();
 
 Directory.CreateDirectory("code/Models");
 Directory.CreateDirectory("code/Api");

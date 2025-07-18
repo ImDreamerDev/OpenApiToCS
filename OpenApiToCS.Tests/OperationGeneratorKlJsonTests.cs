@@ -20,8 +20,8 @@ public class OperationGeneratorKlJsonTests
     public void GenerateApiClasses_Should_Produce_Expected_Clients_And_Methods_For_KlQuiz()
     {
         var doc = LoadKlDocument();
-        var dataClasses = new DataClassGenerator().GenerateDataClasses(doc);
-        var result = new OperationGenerator(dataClasses).GenerateApiClasses(doc);
+        var dataClasses = new DataClassGenerator(doc).GenerateDataClasses();
+        var result = new OperationGenerator(doc, dataClasses).GenerateApiClasses();
 
         // Check expected client class names
         result.Keys.ShouldContain("GameClientV1");

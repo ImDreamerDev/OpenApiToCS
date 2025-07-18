@@ -36,8 +36,8 @@ public class DataClassGeneratorTests
             }
         };
 
-        DataClassGenerator generator = new DataClassGenerator();
-        DataClassGenerationResult result = generator.GenerateDataClasses(doc);
+        DataClassGenerator generator = new DataClassGenerator(doc);
+        DataClassGenerationResult result = generator.GenerateDataClasses();
 
         result.Classes["TestObject"].Source.ShouldContain("[Required]");
         result.Classes["TestObject"].Source.ShouldContain("public string Id");
@@ -67,8 +67,8 @@ public class DataClassGeneratorTests
             }
         };
 
-        DataClassGenerator generator = new DataClassGenerator();
-        var result = generator.GenerateDataClasses(doc);
+        DataClassGenerator generator = new DataClassGenerator(doc);
+        var result = generator.GenerateDataClasses();
 
         result.Classes["TestObject"].Source.ShouldContain("public string? Id");
     }
@@ -96,8 +96,8 @@ public class DataClassGeneratorTests
             }
         };
 
-        DataClassGenerator generator = new DataClassGenerator();
-        var result = generator.GenerateDataClasses(doc);
+        DataClassGenerator generator = new DataClassGenerator(doc);
+        var result = generator.GenerateDataClasses();
 
         result.Classes["TestObject"].Source.ShouldContain("[Obsolete(\"This property is deprecated.\")]");
     }
@@ -136,8 +136,8 @@ public class DataClassGeneratorTests
             }
         };
 
-        DataClassGenerator generator = new DataClassGenerator();
-        var result = generator.GenerateDataClasses(doc);
+        DataClassGenerator generator = new DataClassGenerator(doc);
+        var result = generator.GenerateDataClasses();
 
         // Should generate TestObject, TestObjectOneOf, TestObjectA, TestObjectB, and a converter
         result.Classes.Keys.ShouldContain("TestObject");
@@ -193,8 +193,8 @@ public class DataClassGeneratorTests
             }
         };
 
-        DataClassGenerator generator = new DataClassGenerator();
-        var result = generator.GenerateDataClasses(doc);
+        DataClassGenerator generator = new DataClassGenerator(doc);
+        var result = generator.GenerateDataClasses();
 
         result.Classes.Keys.ShouldContain("TestObject");
         result.Classes["TestObject"].Source.ShouldContain("public record TestObject");
@@ -221,8 +221,8 @@ public class DataClassGeneratorTests
             }
         };
 
-        DataClassGenerator generator = new DataClassGenerator();
-        var result = generator.GenerateDataClasses(doc);
+        DataClassGenerator generator = new DataClassGenerator(doc);
+        var result = generator.GenerateDataClasses();
 
         result.Classes.Keys.ShouldContain("TestEnum");
         result.Classes["TestEnum"].Source.ShouldContain("public enum TestEnum");
@@ -249,8 +249,8 @@ public class DataClassGeneratorTests
             }
         };
 
-        DataClassGenerator generator = new DataClassGenerator();
-        var result = generator.GenerateDataClasses(doc);
+        DataClassGenerator generator = new DataClassGenerator(doc);
+        var result = generator.GenerateDataClasses();
 
         result.Classes.Keys.ShouldNotContain("Unsupported");
     }
@@ -286,8 +286,8 @@ public class DataClassGeneratorTests
             }
         };
 
-        DataClassGenerator generator = new DataClassGenerator();
-        var result = generator.GenerateDataClasses(doc);
+        DataClassGenerator generator = new DataClassGenerator(doc);
+        var result = generator.GenerateDataClasses();
 
         // Both keys are different, but class names will be the same after ToTitleCase
         result.Classes.Keys.Count.ShouldBe(2);
@@ -386,8 +386,8 @@ public class DataClassGeneratorTests
             }
         };
 
-        DataClassGenerator generator = new DataClassGenerator();
-        var result = generator.GenerateDataClasses(doc);
+        DataClassGenerator generator = new DataClassGenerator(doc);
+        var result = generator.GenerateDataClasses();
 
         // Top-level class
         result.Classes.Keys.ShouldContain("EventWrapper");

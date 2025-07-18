@@ -4,28 +4,27 @@ using OpenApiToCS.OpenApi;
 
 namespace OpenApiToCS.Generator;
 
-public class DataClassGenerator : BaseGenerator
+public class DataClassGenerator(OpenApiDocument document) : BaseGenerator(document)
 {
     private readonly Queue<(string name, OpenApiSchema schema)> _missingSchemasToGenerate = [];
     private readonly HashSet<string> _generatedSchemas = [];
     private readonly DataClassGenerationResult _result = new DataClassGenerationResult();
 
-    public DataClassGenerationResult GenerateDataClasses(OpenApiDocument document)
+    public DataClassGenerationResult GenerateDataClasses()
     {
-        string namespaceName = GetClassNameFromKey(document.Info.Title).ToTitleCase() + "ApiClient" + "V" + document.Info.Version[0] + ".Models";
-        foreach (var schema in document.Components.Schemas)
+        string namespaceName = GetClassNameFromKey(Document.Info.Title).ToTitleCase() + "ApiClient" + "V" + Document.Info.Version[0] + ".Models";
+        foreach (var schema in Document.Components.Schemas)
         {
             if (schema.Value.Type is not null and not "object" && schema.Value is { Type: not "string", Enum: null, Items: null })
             {
                 Console.Error.WriteLine("Unsupported schema type: " + schema.Value.Type + " for key: " + schema.Key);
                 continue;
             }
-            if (schema.Value.Type is not "object" and not "array" and not "string")
+            if (schema.Value.Reference is not null && schema.Value.Type is not "object" and not "array" and not "string")
             {
                 Console.Error.WriteLine("Unsupported schema type: " + schema.Value.Type + " for key: " + schema.Key);
                 continue;
             }
-                
 
             string className = GetClassNameFromKey(schema.Key).ToTitleCase();
             if (className is "ProblemDetails" or "HttpValidationProblemDetails" or "ExceptionProblemDetails")
@@ -171,6 +170,19 @@ public class DataClassGenerator : BaseGenerator
             {
                 propertyType = property.Key.ToTitleCase() + "OneOf[]";
             }
+            else if (property.Value.Items is not null && property.Value.Items.Reference is not null)
+            {
+                var itemSchema = GetSchemaFromReference(property.Value.Items.Reference);
+                if (itemSchema?.AllOf is not null)
+                {
+                    if (property.Value.Type is not "array")
+                        propertyType = GetTypeFromKey(itemSchema.AllOf.First());
+                    else
+                        propertyType = GetTypeFromKey(itemSchema.AllOf.First()) + "[]";
+                }
+                else
+                    propertyType = GetTypeFromKey(property.Value, property.Key);
+            }
             else
                 propertyType = GetTypeFromKey(property.Value, property.Key);
         }
@@ -198,7 +210,7 @@ public class DataClassGenerator : BaseGenerator
 
         if (property.Value.Items is not null && property.Value.Items.Type == "object" && property.Value.Items.Reference is null && property.Value.Items.OneOf is null)
         {
-            _missingSchemasToGenerate.Enqueue((propertyName + "Item", property.Value.Items));
+            _missingSchemasToGenerate.Enqueue((propertyName, property.Value.Items));
         }
 
         return new Property(propertyName, propertyType, isRequired, property.Value.Nullable, property.Value.Description);
