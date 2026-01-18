@@ -1,26 +1,27 @@
 using System.ComponentModel.DataAnnotations;
 using System.Text.Json.Serialization;
+namespace KLQuizApiClientV1.Models;
 public record UserProfileReadModel
 {
 	[JsonPropertyName("displayName")]
-	public string? DisplayName { get; set; }
+	public string? DisplayName { get; init; }
 
 	[JsonPropertyName("avatar")]
-	public string? Avatar { get; set; }
+	public string? Avatar { get; init; }
 
 	[JsonPropertyName("crystals")]
-	public string? Crystals { get; set; }
+	public string? Crystals { get; init; }
 
 	[JsonPropertyName("quizCount")]
-	public int QuizCount { get; set; }
+	public int QuizCount { get; init; }
 
 	[JsonPropertyName("correctAnswers")]
-	public int CorrectAnswers { get; set; }
+	public int CorrectAnswers { get; init; }
 
 	[JsonPropertyName("averageCorrectAnswers")]
-	public float AverageCorrectAnswers { get; set; }
+	public float AverageCorrectAnswers { get; init; }
 
 	[JsonPropertyName("creationTime")]
-	public DateTimeOffset CreationTime { get; set; }
+	public DateTimeOffset CreationTime { get; init; }
 
 }

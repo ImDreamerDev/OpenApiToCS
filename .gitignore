@@ -22,7 +22,13 @@ bld/
 [Oo]bj/
 [Ll]og/
 [Ll]ogs/
+
+# Generated code output
 code/
+
+# Debug/test files
+debug_*.cs
+test_output.txt
 
 # .NET Core
 project.lock.json

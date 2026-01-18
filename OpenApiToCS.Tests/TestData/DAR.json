@@ -1,0 +1,528 @@
+{
+    "components": {
+        "schemas": {
+            "EventWrapper": {
+                "properties": {
+                    "Format": {
+                        "type": "string"
+                    },
+                    "Id": {
+                        "type": "number"
+                    },
+                    "Message": {
+                        "$ref": "#/components/schemas/MessageType"
+                    },
+                    "Timestamp": {
+                        "format": "date-time",
+                        "type": "string"
+                    }
+                },
+                "required": [
+                    "Id",
+                    "Message",
+                    "Format",
+                    "Timestamp"
+                ],
+                "type": "object"
+            },
+            "MessageType": {
+                "additionalProperties": false,
+                "properties": {
+                    "Grunddatabesked": {
+                        "additionalProperties": false,
+                        "description": "http://data.gov.dk/model/Grunddatabesked/Grunddatabesked",
+                        "properties": {
+                            "Hændelsesbesked": {
+                                "additionalProperties": false,
+                                "description": "http://data.gov.dk/model/Grunddatabesked/Grunddatabesked/Hændelsesbesked",
+                                "properties": {
+                                    "Beskeddata": {
+                                        "description": "http://data.gov.dk/model/Grunddatabesked/Grunddatabesked/Hændelsesbesked/Beskeddata",
+                                        "items": {
+                                            "oneOf": [
+                                                {
+                                                    "required": [
+                                                        "Objektdata"
+                                                    ],
+                                                    "title": "Objektdata"
+                                                },
+                                                {
+                                                    "additionalProperties": false,
+                                                    "properties": {
+                                                        "objektreference": {
+                                                            "type": "string"
+                                                        }
+                                                    },
+                                                    "required": [
+                                                        "objektreference"
+                                                    ],  
+                                                    "title": "Objektreference",
+                                                    "type": "object"
+                                                }
+                                            ],
+                                            "type": "object"
+                                        },
+                                        "minItems": 1,
+                                        "type": "array"
+                                    },
+                                    "Beskedkuvert": {
+                                        "additionalProperties": false,
+                                        "description": "http://data.gov.dk/model/Grunddatabesked/Grunddatabesked/Hændelsesbesked/Beskedkuvert",
+                                        "properties": {
+                                            "Filtreringsdata": {
+                                                "additionalProperties": false,
+                                                "description": "http://data.gov.dk/model/Grunddatabesked/Grunddatabesked/Hændelsesbesked/Beskedkuvert/Filtreringsdata",
+                                                "properties": {
+                                                    "Objektregistrering": {
+                                                        "description": "http://data.gov.dk/model/Grunddatabesked/Grunddatabesked/Hændelsesbesked/Beskedkuvert/Filtreringsdata/Objektregistrering",
+                                                        "items": {
+                                                            "additionalProperties": false,
+                                                            "description": "http://data.gov.dk/model/Grunddatabesked/Grunddatabesked/Hændelsesbesked/Beskedkuvert/Filtreringsdata/Objektregistrering/0",
+                                                            "properties": {
+                                                                "Stedbestemmelse": {
+                                                                    "additionalProperties": false,
+                                                                    "description": "http://data.gov.dk/model/Grunddatabesked/Grunddatabesked/Hændelsesbesked/Beskedkuvert/Filtreringsdata/Objektregistrering/0/Stedbestemmelse",
+                                                                    "oneOf": [
+                                                                        {
+                                                                            "required": [
+                                                                                "stedbestemmelseReference"
+                                                                            ]
+                                                                        },
+                                                                        {
+                                                                            "required": [
+                                                                                "stedbestemmelseGeometri"
+                                                                            ]
+                                                                        }
+                                                                    ],
+                                                                    "properties": {
+                                                                        "stedbestemmelseGeometri": {
+                                                                            "description": "http://data.gov.dk/model/Grunddatabesked/Grunddatabesked/Hændelsesbesked/Beskedkuvert/Filtreringsdata/Objektregistrering/0/Stedbestemmelse/stedbestemmelseGeometri",
+                                                                            "type": "string"
+                                                                        },
+                                                                        "stedbestemmelseReference": {
+                                                                            "description": "http://data.gov.dk/model/Grunddatabesked/Grunddatabesked/Hændelsesbesked/Beskedkuvert/Filtreringsdata/Objektregistrering/0/Stedbestemmelse/stedbestemmelseReference",
+                                                                            "type": "string"
+                                                                        }
+                                                                    },
+                                                                    "type": "object"
+                                                                },
+                                                                "objektansvarligAktør": {
+                                                                    "description": "http://data.gov.dk/model/Grunddatabesked/Grunddatabesked/Hændelsesbesked/Beskedkuvert/Filtreringsdata/Objektregistrering/0/objektansvarligAktør",
+                                                                    "type": "string"
+                                                                },
+                                                                "objektdescription": {
+                                                                    "description": "http://data.gov.dk/model/Grunddatabesked/Grunddatabesked/Hændelsesbesked/Beskedkuvert/Filtreringsdata/Objektregistrering/0/objektID",
+                                                                    "type": "string"
+                                                                },
+                                                                "objekthandling": {
+                                                                    "description": "http://data.gov.dk/model/Grunddatabesked/Grunddatabesked/Hændelsesbesked/Beskedkuvert/Filtreringsdata/Objektregistrering/0/objekthandling",
+                                                                    "type": "string"
+                                                                },
+                                                                "objekttype": {
+                                                                    "description": "http://data.gov.dk/model/Grunddatabesked/Grunddatabesked/Hændelsesbesked/Beskedkuvert/Filtreringsdata/Objektregistrering/0/objekttype",
+                                                                    "type": "string"
+                                                                },
+                                                                "opgaveemne": {
+                                                                    "description": "http://data.gov.dk/model/Grunddatabesked/Grunddatabesked/Hændelsesbesked/Beskedkuvert/Filtreringsdata/Objektregistrering/0/opgaveemne",
+                                                                    "type": "string"
+                                                                },
+                                                                "registreringsaktør": {
+                                                                    "description": "http://data.gov.dk/model/Grunddatabesked/Grunddatabesked/Hændelsesbesked/Beskedkuvert/Filtreringsdata/Objektregistrering/0/registreringsaktør",
+                                                                    "type": "string"
+                                                                },
+                                                                "registreringsdescription": {
+                                                                    "description": "http://data.gov.dk/model/Grunddatabesked/Grunddatabesked/Hændelsesbesked/Beskedkuvert/Filtreringsdata/Objektregistrering/0/registreringsID",
+                                                                    "type": "string"
+                                                                },
+                                                                "registreringstdescription": {
+                                                                    "description": "http://data.gov.dk/model/Grunddatabesked/Grunddatabesked/Hændelsesbesked/Beskedkuvert/Filtreringsdata/Objektregistrering/0/registreringstid",
+                                                                    "type": "string"
+                                                                },
+                                                                "status": {
+                                                                    "description": "http://data.gov.dk/model/Grunddatabesked/Grunddatabesked/Hændelsesbesked/Beskedkuvert/Filtreringsdata/Objektregistrering/0/status",
+                                                                    "type": "string"
+                                                                }
+                                                            },
+                                                            "required": [
+                                                                "objektID",
+                                                                "registreringstid",
+                                                                "objekttype"
+                                                            ],
+                                                            "type": "object"
+                                                        },
+                                                        "minItems": 0,
+                                                        "type": "array",
+                                                        "uniqueItems": false
+                                                    },
+                                                    "RelateretObjekt": {
+                                                        "description": "http://data.gov.dk/model/Grunddatabesked/Grunddatabesked/Hændelsesbesked/Beskedkuvert/Filtreringsdata/RelateretObjekt",
+                                                        "items": {
+                                                            "additionalProperties": false,
+                                                            "description": "http://data.gov.dk/model/Grunddatabesked/Grunddatabesked/Hændelsesbesked/Beskedkuvert/Filtreringsdata/RelateretObjekt/0",
+                                                            "properties": {
+                                                                "objektdescription": {
+                                                                    "description": "http://data.gov.dk/model/Grunddatabesked/Grunddatabesked/Hændelsesbesked/Beskedkuvert/Filtreringsdata/RelateretObjekt/0/objektID",
+                                                                    "type": "string"
+                                                                },
+                                                                "objekttype": {
+                                                                    "description": "http://data.gov.dk/model/Grunddatabesked/Grunddatabesked/Hændelsesbesked/Beskedkuvert/Filtreringsdata/RelateretObjekt/0/objekttype",
+                                                                    "type": "string"
+                                                                }
+                                                            },
+                                                            "required": [
+                                                                "objektID",
+                                                                "objekttype"
+                                                            ],
+                                                            "type": "object"
+                                                        },
+                                                        "minItems": 0,
+                                                        "type": "array",
+                                                        "uniqueItems": false
+                                                    },
+                                                    "beskedansvarligAktør": {
+                                                        "description": "http://data.gov.dk/model/Grunddatabesked/Grunddatabesked/Hændelsesbesked/Beskedkuvert/Filtreringsdata/beskedansvarligAktør",
+                                                        "type": "string"
+                                                    },
+                                                    "beskedtype": {
+                                                        "description": "http://data.gov.dk/model/Grunddatabesked/Grunddatabesked/Hændelsesbesked/Beskedkuvert/Filtreringsdata/beskedtype",
+                                                        "type": "string"
+                                                    },
+                                                    "tilladtModtager": {
+                                                        "description": "http://data.gov.dk/model/Grunddatabesked/Grunddatabesked/Hændelsesbesked/Beskedkuvert/Filtreringsdata/tilladtModtager",
+                                                        "items": {
+                                                            "description": "http://data.gov.dk/model/Grunddatabesked/Grunddatabesked/Hændelsesbesked/Beskedkuvert/Filtreringsdata/tilladtModtager/0",
+                                                            "type": "string"
+                                                        },
+                                                        "minItems": 0,
+                                                        "type": "array",
+                                                        "uniqueItems": true
+                                                    },
+                                                    "tværgåendeProces": {
+                                                        "description": "http://data.gov.dk/model/Grunddatabesked/Grunddatabesked/Hændelsesbesked/Beskedkuvert/Filtreringsdata/tværgåendeProces",
+                                                        "type": "string"
+                                                    }
+                                                },
+                                                "required": [
+                                                    "beskedtype",
+                                                    "beskedansvarligAktør"
+                                                ],
+                                                "type": "object"
+                                            },
+                                            "Leveranceinformation": {
+                                                "additionalProperties": false,
+                                                "description": "http://data.gov.dk/model/Grunddatabesked/Grunddatabesked/Hændelsesbesked/Beskedkuvert/Leveranceinformation",
+                                                "properties": {
+                                                    "Leverancerute": {
+                                                        "description": "http://data.gov.dk/model/Grunddatabesked/Grunddatabesked/Hændelsesbesked/Beskedkuvert/Leveranceinformation/Leverancerute",
+                                                        "items": {
+                                                            "additionalProperties": false,
+                                                            "description": "http://data.gov.dk/model/Grunddatabesked/Grunddatabesked/Hændelsesbesked/Beskedkuvert/Leveranceinformation/Leverancerute/0",
+                                                            "properties": {
+                                                                "erLeveretIHenholdTil": {
+                                                                    "description": "http://data.gov.dk/model/Grunddatabesked/Grunddatabesked/Hændelsesbesked/Beskedkuvert/Leveranceinformation/Leverancerute/0/erLeveretIHenholdTil",
+                                                                    "type": "string"
+                                                                },
+                                                                "fordelingssystem": {
+                                                                    "description": "http://data.gov.dk/model/Grunddatabesked/Grunddatabesked/Hændelsesbesked/Beskedkuvert/Leveranceinformation/Leverancerute/0/fordelingssystem",
+                                                                    "type": "string"
+                                                                },
+                                                                "leverancetidspunkt": {
+                                                                    "description": "http://data.gov.dk/model/Grunddatabesked/Grunddatabesked/Hændelsesbesked/Beskedkuvert/Leveranceinformation/Leverancerute/0/leverancetidspunkt",
+                                                                    "type": "string"
+                                                                },
+                                                                "modtagelsestidspunkt": {
+                                                                    "description": "http://data.gov.dk/model/Grunddatabesked/Grunddatabesked/Hændelsesbesked/Beskedkuvert/Leveranceinformation/Leverancerute/0/modtagelsestidspunkt",
+                                                                    "type": "string"
+                                                                },
+                                                                "modtagetFraSystem": {
+                                                                    "description": "http://data.gov.dk/model/Grunddatabesked/Grunddatabesked/Hændelsesbesked/Beskedkuvert/Leveranceinformation/Leverancerute/0/modtagetFraSystem",
+                                                                    "type": "string"
+                                                                }
+                                                            },
+                                                            "required": [
+                                                                "fordelingssystem",
+                                                                "modtagelsestidspunkt",
+                                                                "leverancetidspunkt",
+                                                                "modtagetFraSystem",
+                                                                "erLeveretIHenholdTil"
+                                                            ],
+                                                            "type": "object"
+                                                        },
+                                                        "minItems": 0,
+                                                        "type": "array",
+                                                        "uniqueItems": false
+                                                    },
+                                                    "dannelsestidspunkt": {
+                                                        "description": "http://data.gov.dk/model/Grunddatabesked/Grunddatabesked/Hændelsesbesked/Beskedkuvert/Leveranceinformation/dannelsestidspunkt",
+                                                        "type": "string"
+                                                    },
+                                                    "kildesystem": {
+                                                        "description": "http://data.gov.dk/model/Grunddatabesked/Grunddatabesked/Hændelsesbesked/Beskedkuvert/Leveranceinformation/kildesystem",
+                                                        "type": "string"
+                                                    },
+                                                    "kildesystemAkkreditiver": {
+                                                        "description": "http://data.gov.dk/model/Grunddatabesked/Grunddatabesked/Hændelsesbesked/Beskedkuvert/Leveranceinformation/kildesystemAkkreditiver",
+                                                        "type": "string"
+                                                    },
+                                                    "kildesystemIPAdresse": {
+                                                        "description": "http://data.gov.dk/model/Grunddatabesked/Grunddatabesked/Hændelsesbesked/Beskedkuvert/Leveranceinformation/kildesystemIPAdresse",
+                                                        "type": "string"
+                                                    },
+                                                    "sikkerhedsklassificering": {
+                                                        "description": "http://data.gov.dk/model/Grunddatabesked/Grunddatabesked/Hændelsesbesked/Beskedkuvert/Leveranceinformation/sikkerhedsklassificering",
+                                                        "type": "string"
+                                                    },
+                                                    "transaktionsdescription": {
+                                                        "description": "http://data.gov.dk/model/Grunddatabesked/Grunddatabesked/Hændelsesbesked/Beskedkuvert/Leveranceinformation/transaktionsID",
+                                                        "type": "string"
+                                                    }
+                                                },
+                                                "required": [
+                                                    "dannelsestidspunkt",
+                                                    "kildesystem",
+                                                    "sikkerhedsklassificering"
+                                                ],
+                                                "type": "object"
+                                            },
+                                            "Modtagerhandling": {
+                                                "additionalProperties": false,
+                                                "description": "http://data.gov.dk/model/Grunddatabesked/Grunddatabesked/Hændelsesbesked/Beskedkuvert/Modtagerhandling",
+                                                "properties": {
+                                                    "handling": {
+                                                        "description": "http://data.gov.dk/model/Grunddatabesked/Grunddatabesked/Hændelsesbesked/Beskedkuvert/Modtagerhandling/handling",
+                                                        "type": "string"
+                                                    },
+                                                    "responsmodtager": {
+                                                        "description": "http://data.gov.dk/model/Grunddatabesked/Grunddatabesked/Hændelsesbesked/Beskedkuvert/Modtagerhandling/responsmodtager",
+                                                        "type": "string"
+                                                    }
+                                                },
+                                                "type": "object"
+                                            }
+                                        },
+                                        "required": [
+                                            "Filtreringsdata",
+                                            "Leveranceinformation"
+                                        ],
+                                        "type": "object"
+                                    },
+                                    "beskeddescription": {
+                                        "description": "http://data.gov.dk/model/Grunddatabesked/Grunddatabesked/Hændelsesbesked/beskedID",
+                                        "type": "string"
+                                    },
+                                    "beskedversion": {
+                                        "description": "http://data.gov.dk/model/Grunddatabesked/Grunddatabesked/Hændelsesbesked/beskedversion",
+                                        "type": "string"
+                                    }
+                                },
+                                "required": [
+                                    "Beskedkuvert",
+                                    "beskedID",
+                                    "beskedversion"
+                                ],
+                                "type": "object"
+                            }
+                        },
+                        "required": [
+                            "Hændelsesbesked"
+                        ],
+                        "type": "object"
+                    }
+                },
+                "required": [
+                    "Grunddatabesked"
+                ],
+                "title": "Message",
+                "type": "object"
+            }
+        },
+        "securitySchemes": {
+            "apiKeyHeader": {
+                "in": "header",
+                "name": "Ocp-Apim-Subscription-Key",
+                "type": "apiKey"
+            },
+            "apiKeyQuery": {
+                "in": "query",
+                "name": "subscription-key",
+                "type": "apiKey"
+            }
+        }
+    },
+    "info": {
+        "title": "Datafordeleren Haendelser API",
+        "version": "1.0"
+    },
+    "openapi": "3.0.1",
+    "paths": {
+        "/custom": {
+            "get": {
+                "description": "GET /custom",
+                "operationId": "get-custom",
+                "parameters": [
+                    {
+                        "in": "query",
+                        "name": "username",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "in": "query",
+                        "name": "password",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "in": "query",
+                        "name": "pagesize",
+                        "schema": {
+                            "type": "integer"
+                        }
+                    },
+                    {
+                        "in": "query",
+                        "name": "page",
+                        "schema": {
+                            "type": "integer"
+                        }
+                    },
+                    {
+                        "in": "query",
+                        "name": "format",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "in": "query",
+                        "name": "dateto",
+                        "schema": {
+                            "format": "date-time",
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "in": "query",
+                        "name": "datefrom",
+                        "schema": {
+                            "format": "date-time",
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "example": [
+                                    {
+                                        "Format": "string",
+                                        "Id": 0,
+                                        "Message": {
+                                            "Grunddatabesked": {
+                                                "Hændelsesbesked": {
+                                                    "Beskeddata": [
+                                                        {}
+                                                    ],
+                                                    "Beskedkuvert": {
+                                                        "Filtreringsdata": {
+                                                            "Objektregistrering": [
+                                                                {
+                                                                    "Stedbestemmelse": {
+                                                                        "stedbestemmelseGeometri": "string",
+                                                                        "stedbestemmelseReference": "string"
+                                                                    },
+                                                                    "objektansvarligAktør": "string",
+                                                                    "objektdescription": "string",
+                                                                    "objekthandling": "string",
+                                                                    "objekttype": "string",
+                                                                    "opgaveemne": "string",
+                                                                    "registreringsaktør": "string",
+                                                                    "registreringsdescription": "string",
+                                                                    "registreringstdescription": "string",
+                                                                    "status": "string"
+                                                                }
+                                                            ],
+                                                            "RelateretObjekt": [
+                                                                {
+                                                                    "objektdescription": "string",
+                                                                    "objekttype": "string"
+                                                                }
+                                                            ],
+                                                            "beskedansvarligAktør": "string",
+                                                            "beskedtype": "string",
+                                                            "tilladtModtager": [
+                                                                "string"
+                                                            ],
+                                                            "tværgåendeProces": "string"
+                                                        },
+                                                        "Leveranceinformation": {
+                                                            "Leverancerute": [
+                                                                {
+                                                                    "erLeveretIHenholdTil": "string",
+                                                                    "fordelingssystem": "string",
+                                                                    "leverancetidspunkt": "string",
+                                                                    "modtagelsestidspunkt": "string",
+                                                                    "modtagetFraSystem": "string"
+                                                                }
+                                                            ],
+                                                            "dannelsestidspunkt": "string",
+                                                            "kildesystem": "string",
+                                                            "kildesystemAkkreditiver": "string",
+                                                            "kildesystemIPAdresse": "string",
+                                                            "sikkerhedsklassificering": "string",
+                                                            "transaktionsdescription": "string"
+                                                        },
+                                                        "Modtagerhandling": {
+                                                            "handling": "string",
+                                                            "responsmodtager": "string"
+                                                        }
+                                                    },
+                                                    "beskeddescription": "string",
+                                                    "beskedversion": "string"
+                                                }
+                                            }
+                                        },
+                                        "Timestamp": "string"
+                                    }
+                                ],
+                                "schema": {
+                                    "items": {
+                                        "$ref": "#/components/schemas/EventWrapper"
+                                    },
+                                    "type": "array"
+                                }
+                            }
+                        },
+                        "description": "GET /custom"
+                    },
+                    "400": {
+                        "description": "GET /custom"
+                    },
+                    "403": {
+                        "description": "GET /custom"
+                    }
+                },
+                "summary": "GET /custom"
+            }
+        }
+    },
+    "security": [
+        {
+            "apiKeyHeader": []
+        },
+        {
+            "apiKeyQuery": []
+        }
+    ],
+    "servers": [
+        {
+            "url": "http://bc-t-apim.azure-api.net/external/datafordeleren/haendelser"
+        },
+        {
+            "url": "https://bc-t-apim.azure-api.net/external/datafordeleren/haendelser"
+        }
+    ]
+}

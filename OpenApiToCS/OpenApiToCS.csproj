@@ -2,25 +2,62 @@
 
     <PropertyGroup>
         <OutputType>Exe</OutputType>
-        <TargetFramework>net8.0</TargetFramework>
+        <TargetFramework>net10.0</TargetFramework>
         <ImplicitUsings>enable</ImplicitUsings>
         <Nullable>enable</Nullable>
+        
+        <!-- NuGet Package Metadata -->
+        <PackageId>OpenApiToCS</PackageId>
+        <Version>1.0.0</Version>
+        <Authors>OpenApiToCS Contributors</Authors>
+        <Company>OpenApiToCS</Company>
+        <Description>Generate type-safe C# API clients and models from OpenAPI 3.0 specifications. Supports polymorphic types (allOf, oneOf, anyOf), discriminators, enums, and comprehensive type mappings.</Description>
+        <PackageTags>openapi;swagger;codegen;api-client;csharp;generator;dotnet</PackageTags>
+        <PackageProjectUrl>https://github.com/yourusername/OpenApiToCS</PackageProjectUrl>
+        <RepositoryUrl>https://github.com/yourusername/OpenApiToCS</RepositoryUrl>
+        <RepositoryType>git</RepositoryType>
+        <PackageLicenseExpression>MIT</PackageLicenseExpression>
+        <PackageReadmeFile>README.md</PackageReadmeFile>
+        <PackageReleaseNotes>See CHANGELOG.md for release notes</PackageReleaseNotes>
+        <Copyright>Copyright (c) 2026 OpenApiToCS Contributors</Copyright>
+        
+        <!-- Tool packaging -->
+        <PackAsTool>true</PackAsTool>
+        <ToolCommandName>openapitocs</ToolCommandName>
+        
+        <!-- Build settings -->
+        <GenerateDocumentationFile>true</GenerateDocumentationFile>
+        <NoWarn>$(NoWarn);CS1591</NoWarn>
     </PropertyGroup>
 
     <ItemGroup>
-      <PackageReference Include="Hellang.Middleware.ProblemDetails" Version="6.5.1" />
+        <PackageReference Include="Hellang.Middleware.ProblemDetails" Version="6.5.1"/>
+        <PackageReference Include="xunit.extensibility.core" Version="2.9.3" />
     </ItemGroup>
 
     <ItemGroup>
-      <Compile Remove="Example\**" />
+        <Compile Remove="Example\**"/>
     </ItemGroup>
 
     <ItemGroup>
-      <EmbeddedResource Remove="Example\**" />
+        <EmbeddedResource Remove="Example\**"/>
     </ItemGroup>
 
     <ItemGroup>
-      <None Remove="Example\**" />
+        <None Remove="Example\**"/>
+    </ItemGroup>
+    
+    <ItemGroup>
+        <InternalsVisibleTo Include="OpenApiToCS.Tests"/>
+    </ItemGroup>
+
+    <ItemGroup>
+        <None Include="Templates\**\*.txt">
+            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+        </None>
+        <None Include="..\README.md" Pack="true" PackagePath="\"/>
+        <None Include="..\LICENSE" Pack="true" PackagePath="\"/>
+        <None Include="..\CHANGELOG.md" Pack="true" PackagePath="\"/>
     </ItemGroup>
 
 </Project>

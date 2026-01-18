@@ -1,0 +1,20 @@
+	private static async Task HandleError(HttpResponseMessage response, string path)
+	{
+		string errorContent = await response.Content.ReadAsStringAsync();
+		ProblemDetails? problemDetails = JsonSerializer.Deserialize<ProblemDetails>(errorContent);
+		if (problemDetails is not null)
+		{
+			throw new ProblemDetailsException(problemDetails);
+		}
+		if (string.IsNullOrEmpty(errorContent) is false)
+		{
+			problemDetails = new ProblemDetails()
+			{
+				Status = (int?)response.StatusCode,
+				Title = $"Call to {path} failed with status code {response.StatusCode}",
+				Detail = errorContent
+			};
+			throw new ProblemDetailsException(problemDetails);
+		}
+		response.EnsureSuccessStatusCode();
+	}

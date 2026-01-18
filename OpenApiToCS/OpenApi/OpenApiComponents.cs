@@ -7,5 +7,5 @@ public class OpenApiComponents
     [JsonPropertyName("schemas")]
     public Dictionary<string, OpenApiSchema> Schemas { get; init; } = [];
     [JsonPropertyName("securitySchemes")]
-    public Dictionary<string, OpenApiSecurityScheme> SecuritySchemes { get; init; } = [];
+    public Dictionary<string, OpenApiSecurityScheme>? SecuritySchemes { get; init; } = [];
 }

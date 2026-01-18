@@ -1,0 +1,6 @@
+{
+  "$schema": "https://json.schemastore.org/openapitocsconfig.json",
+  "outputDirectory": "./generated",
+  "namespace": "MyApi.Client",
+  "generateInterfaces": true
+}

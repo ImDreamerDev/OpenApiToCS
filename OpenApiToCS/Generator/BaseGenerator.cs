@@ -3,12 +3,13 @@ using OpenApiToCS.OpenApi;
 
 namespace OpenApiToCS.Generator;
 
-public class BaseGenerator
+public class BaseGenerator(OpenApiDocument document)
 {
     // Enable this to emit metadata comments in the generated code.
-    public static bool EmitMetadata = false;
+    public bool EmitMetadata = false;
+    protected readonly OpenApiDocument Document = document;
 
-    protected static StringBuilder GenerateSummary(StringBuilder sb, string? summary)
+    protected StringBuilder GenerateSummary(StringBuilder sb, string? summary)
     {
         if (string.IsNullOrEmpty(summary))
             return sb;
@@ -34,11 +35,20 @@ public class BaseGenerator
         sb.Append("\t/// </summary>\n");
         return sb;
     }
+    
+    protected string GenerateSummaryString(string? summary)
+    {
+        if (string.IsNullOrEmpty(summary))
+            return string.Empty;
+            
+        StringBuilder sb = new StringBuilder();
+        return GenerateSummary(sb, summary).ToString();
+    }
 
-    private static readonly Dictionary<string, string> _classNamesCache = new Dictionary<string, string>(comparer: StringComparer.Ordinal);
+    private readonly Dictionary<string, string> _classNamesCache = new Dictionary<string, string>(comparer: StringComparer.Ordinal);
 
 
-    protected static string GetClassNameFromKey(string? key)
+    protected string GetClassNameFromKey(string? key)
     {
         if (string.IsNullOrEmpty(key))
             return "object";
@@ -68,7 +78,7 @@ public class BaseGenerator
         return result;
     }
 
-    protected static string GetTypeFromKey(OpenApiSchema schema)
+    protected string GetTypeFromKey(OpenApiSchema schema, string owningType = "")
     {
         if (schema.Reference is not null)
             return GetClassNameFromKey(schema.Reference);
@@ -91,14 +101,63 @@ public class BaseGenerator
             "string" when format == "binary" => "byte[]",
             "string" when format == "uri" => "Uri",
             "string" when format is null or "string" => "string",
-            "array" => schema.Items != null
-                ? $"{GetTypeFromKey(schema.Items)}[]"
-                : "object[]",
+            "string" when format == "email" => "string",
+            "array" => GetArrayType(owningType, schema.Items),
+            _ => throw new NotImplementedException($"The schema type {type} with the format {format} is not implemented.")
+        };
+    }
+
+    private string GetArrayType(string owningType, OpenApiSchema? schema)
+    {
+        if (schema is null)
+            return "object[]";
+
+        if (schema.Reference is not null)
+        {
+            return GetTypeFromKey(schema) + "[]";
+        }
+        
+        if(schema.Type is not null && schema.Type is not "object")
+        {
+            return GetTypeFromKey(schema) + "[]";
+        }
+
+        string type = owningType.ToTitleCase();
+        return type + "[]";
+
+    }
+
+    protected static bool IsReferenceType(OpenApiSchema schema)
+    {
+        if (schema.Reference is not null)
+            return true;
+
+        var type = schema.Type;
+        var format = schema.Format;
+
+        if (schema.Nullable)
+            return true;
+
+        if (schema.Enum is not null)
+            return true;
+
+        return type switch
+        {
+            null or "object" when schema.Reference is null => true,
+            "integer" => false,
+            "number" => false,
+            "boolean" => false,
+            "string" when format == "date-time" => false,
+            "string" when format == "date" => false,
+            "string" when format == "time" => false,
+            "string" when format == "uuid" => false,
+            "string" => true,
+            "array" => true,
             _ => throw new NotImplementedException($"The schema type {type} is not implemented.")
         };
     }
 
-    protected static StringBuilder GenerateMetadata(StringBuilder sb, string key, OpenApiSchema schema, int indent = 0)
+    protected StringBuilder GenerateMetadata(StringBuilder sb, string key, OpenApiSchema schema, int indent = 0)
     {
         if (EmitMetadata is false)
             return sb;
@@ -166,7 +225,7 @@ public class BaseGenerator
         return sb;
     }
 
-    protected static StringBuilder GenerateMetadata(StringBuilder sb, string key, OpenApiOperation operation, int indent = 0)
+    protected StringBuilder GenerateMetadata(StringBuilder sb, string key, OpenApiOperation operation, int indent = 0)
     {
         if (EmitMetadata is false)
             return sb;
@@ -218,5 +277,14 @@ public class BaseGenerator
         }
 
         return sb;
+    }
+
+    protected OpenApiSchema? GetSchemaFromReference(string reference)
+    {
+        if (string.IsNullOrEmpty(reference))
+            return null;
+
+        string className = reference.Replace("#/components/schemas/", "");
+        return Document.Components.Schemas.GetValueOrDefault(className);
     }
 }

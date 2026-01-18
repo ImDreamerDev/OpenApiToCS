@@ -1,92 +1,156 @@
 ﻿using System.Net;
 using System.Text;
+using OpenApiToCS.Generator.Models;
 using OpenApiToCS.OpenApi;
 
 namespace OpenApiToCS.Generator;
 
-public class OperationGenerator : BaseGenerator
+public class OperationGenerator(OpenApiDocument document, DataClassGenerationResult dataClassGenerationResult, bool monoClient = false) : BaseGenerator(document)
 {
-    public static Dictionary<string, string> GenerateApiClasses(OpenApiDocument document)
+    public Dictionary<string, string> GenerateApiClasses()
+    {
+        return monoClient ? GenerateMonoApiClass() : GeneratePolyApiClasses();
+    }
+
+
+    private Dictionary<string, string> GenerateMonoApiClass()
     {
         var result = new Dictionary<string, string>();
-        char version = document.Info.Version[0];
-        string namespaceName = GetClassNameFromKey(document.Info.Title).ToTitleCase() + "ApiClientV" + version;
+        char version = Document.Info.Version[0];
+        string namespaceName = GetClassNameFromKey(Document.Info.Title).ToTitleCase() + "ApiClientV" + version;
+        StringBuilder operationsSb = new StringBuilder();
 
-        var groups = document.Paths
+        string className = GetClassNameFromKey(Document.Info.Title).ToTitleCase() + "ClientV" + version;
+
+        foreach (var path in Document.Paths)
+        {
+            if (path.Value.Get is not null)
+            {
+                operationsSb.Append(GenerateOperationCode(path.Key, path.Value.Get, HttpMethod.Get));
+            }
+            if (path.Value.Post is not null)
+            {
+                operationsSb.Append(GenerateOperationCode(path.Key, path.Value.Post, HttpMethod.Post));
+            }
+            if (path.Value.Put is not null)
+            {
+                operationsSb.Append(GenerateOperationCode(path.Key, path.Value.Put, HttpMethod.Put));
+            }
+            if (path.Value.Delete is not null)
+            {
+                operationsSb.Append(GenerateOperationCode(path.Key, path.Value.Delete, HttpMethod.Delete));
+            }
+            if (path.Value.Patch is not null)
+            {
+                operationsSb.Append(GenerateOperationCode(path.Key, path.Value.Patch, HttpMethod.Patch));
+            }
+            if (path.Value.Head is not null)
+            {
+                operationsSb.Append(GenerateOperationCode(path.Key, path.Value.Head, HttpMethod.Head));
+            }
+            if (path.Value.Options is not null)
+            {
+                operationsSb.Append(GenerateOperationCode(path.Key, path.Value.Options, HttpMethod.Options));
+            }
+            if (path.Value.Trace is not null)
+            {
+                operationsSb.Append(GenerateOperationCode(path.Key, path.Value.Trace, HttpMethod.Trace));
+            }
+        }
+
+        var replacements = new Dictionary<string, string>
+        {
+            ["namespace"] = namespaceName,
+            ["title"] = Document.Info.Title,
+            ["className"] = className,
+            ["operations"] = operationsSb.ToString(),
+            ["errorHandling"] = TemplateEngine.RenderTemplate("ErrorHandling", new Dictionary<string, string>())
+        };
+        
+        string source = TemplateEngine.RenderTemplate("ApiClient", replacements);
+        result.Add(className, source);
+
+        return result;
+    }
+
+    private Dictionary<string, string> GeneratePolyApiClasses()
+    {
+        var result = new Dictionary<string, string>();
+        char version = Document.Info.Version[0];
+        string namespaceName = GetClassNameFromKey(Document.Info.Title).ToTitleCase() + "ApiClientV" + version;
+        var groups = Document.Paths
             .GroupBy(path => path.Key.Split('/')[1]) // Group by the first segment of the path
             .ToDictionary(g => g.Key, g => g.ToList());
 
         foreach (var group in groups)
         {
-            StringBuilder classSb = new StringBuilder();
+            StringBuilder operationsSb = new StringBuilder();
 
             string className = GetClassNameFromKey(group.Key).ToTitleCase() + "ClientV" + version;
-            classSb.AppendLine("using System.Diagnostics;");
-            classSb.AppendLine("using System.Net.Http.Json;");
-            classSb.AppendLine("using System.Text.Json;");
-            classSb.AppendLine("using Hellang.Middleware.ProblemDetails;");
-            classSb.AppendLine($"using {namespaceName}.Models;");
-            classSb.AppendLine("using Microsoft.AspNetCore.Mvc;");
-            classSb.AppendLine();
-            classSb.AppendLine($"namespace {namespaceName};");
-            classSb.AppendLine();
-            classSb.AppendLine($"// Generated API class for {group.Key}");
-            classSb.AppendLine($"public class {className}(HttpClient httpClient)");
-            classSb.AppendLine("{");
 
             foreach (var path in group.Value)
             {
                 if (path.Value.Get is not null)
                 {
-                    classSb = GenerateOperationCode(classSb, document, path.Key, path.Value.Get, HttpMethod.Get);
-
+                    operationsSb.Append(GenerateOperationCode(path.Key, path.Value.Get, HttpMethod.Get));
                 }
                 if (path.Value.Post is not null)
                 {
-                    classSb = GenerateOperationCode(classSb, document, path.Key, path.Value.Post, HttpMethod.Post);
+                    operationsSb.Append(GenerateOperationCode(path.Key, path.Value.Post, HttpMethod.Post));
                 }
                 if (path.Value.Put is not null)
                 {
-                    classSb = GenerateOperationCode(classSb, document, path.Key, path.Value.Put, HttpMethod.Put);
+                    operationsSb.Append(GenerateOperationCode(path.Key, path.Value.Put, HttpMethod.Put));
                 }
                 if (path.Value.Delete is not null)
                 {
-                    classSb = GenerateOperationCode(classSb, document, path.Key, path.Value.Delete, HttpMethod.Delete);
+                    operationsSb.Append(GenerateOperationCode(path.Key, path.Value.Delete, HttpMethod.Delete));
                 }
-
                 if (path.Value.Patch is not null)
                 {
-                    classSb = GenerateOperationCode(classSb, document, path.Key, path.Value.Patch, HttpMethod.Patch);
+                    operationsSb.Append(GenerateOperationCode(path.Key, path.Value.Patch, HttpMethod.Patch));
                 }
-
                 if (path.Value.Head is not null)
                 {
-                    classSb = GenerateOperationCode(classSb, document, path.Key, path.Value.Head, HttpMethod.Head);
+                    operationsSb.Append(GenerateOperationCode(path.Key, path.Value.Head, HttpMethod.Head));
                 }
-
                 if (path.Value.Options is not null)
                 {
-                    classSb = GenerateOperationCode(classSb, document, path.Key, path.Value.Options, HttpMethod.Options);
+                    operationsSb.Append(GenerateOperationCode(path.Key, path.Value.Options, HttpMethod.Options));
                 }
-
                 if (path.Value.Trace is not null)
                 {
-                    classSb = GenerateOperationCode(classSb, document, path.Key, path.Value.Trace, HttpMethod.Trace);
+                    operationsSb.Append(GenerateOperationCode(path.Key, path.Value.Trace, HttpMethod.Trace));
                 }
             }
 
-            classSb.Append(GenerateErrorHandling());
-            classSb.AppendLine("}");
-            result.Add(className, classSb.ToString());
+            var replacements = new Dictionary<string, string>
+            {
+                ["namespace"] = namespaceName,
+                ["title"] = group.Key,
+                ["className"] = className,
+                ["operations"] = operationsSb.ToString(),
+                ["errorHandling"] = TemplateEngine.RenderTemplate("ErrorHandling", new Dictionary<string, string>())
+            };
+            
+            string source = TemplateEngine.RenderTemplate("ApiClient", replacements);
+            result.Add(className, source);
         }
 
         return result;
     }
 
-    private static StringBuilder GenerateOperationCode(StringBuilder sb, OpenApiDocument document, string path, OpenApiOperation operation, HttpMethod httpMethod)
+    private string GenerateOperationCode(string path, OpenApiOperation operation, HttpMethod httpMethod)
     {
-        string methodName = GetMethodNameFromPath(path).ToTitleCase();
-        sb = GenerateMetadata(sb, path, operation);
+        string methodName;
+        if (monoClient is false)
+        {
+            methodName = GetMethodNameFromPath(path).ToTitleCase();
+        }
+        else
+        {
+            methodName = GetMonoMethodNameFromPath(path).ToTitleCase();
+        }
 
         string method = httpMethod.Method switch
         {
@@ -107,16 +171,15 @@ public class OperationGenerator : BaseGenerator
         if (okResponse.Value is null && successResponse.Value is null)
         {
             Console.Error.WriteLine($"Warning: No OK or successful response found operation at path {path}. We are skipping this operation.");
-            return sb;
+            return string.Empty;
         }
 
-        sb = GenerateSummary(sb, operation.Summary);
-
         bool hasReturnType;
+        string returnTypeString = string.Empty;
         var successfulContent = okResponse.Value?.Content?.FirstOrDefault();
+        
         if (okResponse.Value?.Content is not null && okResponse.Value.Content.Count == 0 || (okResponse.Value is null && successResponse.Value is not null))
         {
-            sb.Append("\tpublic async Task " + method + methodName + "(");
             hasReturnType = false;
         }
         else
@@ -124,8 +187,6 @@ public class OperationGenerator : BaseGenerator
             bool canBeNull = successResponse.Key is HttpStatusCode.Created or HttpStatusCode.Accepted or HttpStatusCode.NoContent;
             if (canBeNull is false && okResponse.Value is not null)
             {
-                // If we can return created, accepted or no content, we assume the response can be null,
-                // and we don't need to check the content schema for nullability since it has already been checked.
                 if (okResponse.Value.Content is not null && canBeNull is false)
                 {
                     ArgumentNullException.ThrowIfNull(successfulContent);
@@ -136,28 +197,34 @@ public class OperationGenerator : BaseGenerator
             {
                 ArgumentNullException.ThrowIfNull(successfulContent);
                 string returnType = GetTypeFromKey(successfulContent.Value.Value.Schema);
-                sb.Append("\tpublic async Task<" + returnType + (canBeNull ? "?" : "") + ">" + method + methodName + "(");
+                if (successfulContent.Value.Value.Schema.Reference is not null)
+                {
+                    var schema = GetSchemaFromReference(successfulContent.Value.Value.Schema.Reference);
+
+                    if (schema is not null && schema.Type is not "object")
+                    {
+                        returnType = GetTypeFromKey(schema, successfulContent.Value.Value.Schema.Reference.Split("/")[^1]);
+                    }
+                }
+                returnTypeString = "<" + returnType + (canBeNull ? "?" : "") + ">";
                 hasReturnType = true;
             }
             else
             {
-                sb.Append("\tpublic async Task " + method + methodName + "(");
                 hasReturnType = false;
             }
-
-           
         }
 
         var parameters = new List<string>();
         var optionalParameters = new List<string>();
         var hasApiVersionHeader = false;
+        
         if (operation.Parameters is not null && operation.Parameters.Length > 0)
         {
             foreach (OpenApiParameter parameter in operation.Parameters)
             {
                 if (parameter is { Name: "api-version", In: "header" })
                 {
-                    // Skip version parameters
                     hasApiVersionHeader = true;
                     continue;
                 }
@@ -169,15 +236,15 @@ public class OperationGenerator : BaseGenerator
                     case "header":
                         if (parameter.Required)
                         {
-                            parameters.Add($"{GetTypeFromKey(parameter.Schema)} {parameter.Name}");
+                            parameters.Add($"{GetTypeFromKey(parameter.Schema)} {parameter.Name.FirstCharToLower()}");
                         }
                         else
                         {
-                            optionalParameters.Add($"{GetTypeFromKey(parameter.Schema)}? {parameter.Name} = null");
+                            optionalParameters.Add($"{GetTypeFromKey(parameter.Schema)}? {parameter.Name.FirstCharToLower()} = null");
                         }
                         break;
                     default:
-                        Console.Error.WriteLine($"Warning: Unsupported parameter location '{parameter.In}' for parameter '{parameter.Name}' at path {path}");
+                        Console.Error.WriteLine($"Warning: Unsupported parameter location '{parameter.In}' for parameter '{parameter.Name.FirstCharToLower()}' at path {path}");
                         break;
                 }
             }
@@ -205,27 +272,34 @@ public class OperationGenerator : BaseGenerator
             }
         }
 
-        foreach (string parameter in parameters)
-        {
-            sb.Append(parameter + ", ");
-        }
-
-        foreach (string parameter in optionalParameters)
-        {
-            sb.Append(parameter + ", ");
-        }
-
-        sb.Append("Action<HttpRequestMessage>? configureRequest = null" + (hasReturnType || bodyName is not null ? ", " : ""));
+        List<string> allParameters = new List<string>(parameters);
+        allParameters.AddRange(optionalParameters);
+        allParameters.Add("Action<HttpRequestMessage>? configureRequest = null");
+        
         if (hasReturnType)
-            sb.Append("bool allowNullOrEmptyResponse = false" + (hasReturnType || bodyName is not null ? ", " : ""));
+            allParameters.Add("bool allowNullOrEmptyResponse = false");
         if (hasReturnType || bodyName is not null)
-            sb.Append("JsonSerializerOptions? jsonSerializerOptions = null");
-        sb.Append(')');
+            allParameters.Add("JsonSerializerOptions? jsonSerializerOptions = null");
 
-        sb.AppendLine();
-        sb.AppendLine("\t{");
-        string queryString = path;
-        var isFirst = true;
+        // Build serializer setup
+        StringBuilder serializerSetup = new StringBuilder();
+        if (hasReturnType || bodyName is not null)
+        {
+            serializerSetup.AppendLine("\t\tif (jsonSerializerOptions is null)");
+            serializerSetup.AppendLine("\t\t{");
+            serializerSetup.AppendLine("\t\t\tjsonSerializerOptions = new JsonSerializerOptions(JsonSerializerDefaults.Web);");
+            serializerSetup.AppendLine("\t\t\tjsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());");
+            serializerSetup.AppendLine("\t\t}");
+            
+            foreach (OneOfConverter oneOfConverter in dataClassGenerationResult.Converters)
+            {
+                serializerSetup.AppendLine($"\t\tjsonSerializerOptions.Converters.Add(new {oneOfConverter.Name}());");
+            }
+        }
+
+        // Build query builder
+        StringBuilder queryBuilder = new StringBuilder();
+        queryBuilder.AppendLine("\t\tvar queryBuilder = new QueryBuilder();");
         if (operation.Parameters is not null)
         {
             foreach (OpenApiParameter parameter in operation.Parameters)
@@ -233,104 +307,94 @@ public class OperationGenerator : BaseGenerator
                 if (parameter.In != "query")
                     continue;
 
-                queryString += isFirst ? "?" : "&";
-                isFirst = false;
-                if (parameter.Required)
+                if (parameter.Required is false)
                 {
-                    queryString += $"{parameter.Name}={{{parameter.Name}}}";
+                    queryBuilder.AppendLine($"\t\tif ({parameter.Name.FirstCharToLower()} is not null)");
+                }
+
+                var schema = parameter.Schema;
+                if (IsReferenceType(schema) || parameter.Required is true)
+                {
+                    queryBuilder.AppendLine($"\t\t\tqueryBuilder.Add(\"{parameter.Name}\", {parameter.Name.FirstCharToLower()}.ToString());");
                 }
                 else
                 {
-                    queryString += $"{parameter.Name}={{{parameter.Name} ?? null}}";
+                    queryBuilder.AppendLine($"\t\t\tqueryBuilder.Add(\"{parameter.Name}\", {parameter.Name.FirstCharToLower()}.Value.ToString());");
                 }
             }
         }
-        
 
-        sb.AppendLine($"\t\tHttpRequestMessage httpRequest = new HttpRequestMessage(HttpMethod.{method}, $\"{queryString}\");");
-        if (hasApiVersionHeader)
-            sb.AppendLine($"\t\thttpRequest.Headers.Add(\"api-version\", \"{document.Info.Version}\");");
-
-        if (bodyName is not null)
-        {
-            sb.AppendLine($"\t\thttpRequest.Content = JsonContent.Create({bodyName}, options: jsonSerializerOptions);");
-        }
-        sb.AppendLine("\t\tconfigureRequest?.Invoke(httpRequest);");
-        sb.AppendLine("\t\tHttpResponseMessage response = await httpClient.SendAsync(httpRequest);");
-        sb.AppendLine("\t\tif (response.IsSuccessStatusCode)");
-        sb.AppendLine("\t\t{");
-
+        // Build response handling
+        StringBuilder responseHandling = new StringBuilder();
         if (okResponse.Value?.Content != null && okResponse.Value.Content.Count != 0)
         {
             ArgumentNullException.ThrowIfNull(successfulContent);
             string returnType = GetTypeFromKey(successfulContent.Value.Value.Schema);
-            sb.AppendLine($"\t\t\tvar result = await response.Content.ReadFromJsonAsync<{returnType}>(options: jsonSerializerOptions);");
-            sb.AppendLine("\t\t\tif (result is null && allowNullOrEmptyResponse)");
-            sb.AppendLine("\t\t\t{");
-            sb.AppendLine(successfulContent.Value.Value.Schema.Type == "array" ? "\t\t\t\treturn [];" : "\t\t\t\treturn null!;");
-            sb.AppendLine("\t\t\t}");
-            sb.AppendLine("\t\t\treturn result ?? throw new InvalidOperationException(\"Failed to deserialize response.\");");
+            if (successfulContent.Value.Value.Schema.Reference is not null)
+            {
+                var schema = GetSchemaFromReference(successfulContent.Value.Value.Schema.Reference);
+
+                if (schema is not null && schema.Type is not "object")
+                {
+                    returnType = GetTypeFromKey(schema, successfulContent.Value.Value.Schema.Reference.Split("/")[^1]);
+                }
+            }
+
+            responseHandling.AppendLine($"\t\t\tvar content = await response.Content.ReadAsStringAsync();");
+            responseHandling.AppendLine($"\t\t\tvar result = JsonSerializer.Deserialize<{returnType}>(content, jsonSerializerOptions);");
+            responseHandling.AppendLine("\t\t\tif (result is null && allowNullOrEmptyResponse)");
+            responseHandling.AppendLine("\t\t\t{");
+            responseHandling.AppendLine(successfulContent.Value.Value.Schema.Type == "array" ? "\t\t\t\treturn [];" : "\t\t\t\treturn null!;");
+            responseHandling.AppendLine("\t\t\t}");
+            responseHandling.AppendLine("\t\t\treturn result ?? throw new InvalidOperationException(\"Failed to deserialize response.\");");
         }
         else
         {
-            sb.AppendLine("\t\t\treturn;");
-
+            responseHandling.AppendLine("\t\t\treturn;");
         }
-        sb.AppendLine("\t\t}");
 
-        sb.AppendLine($"\t\tawait HandleError(response, $\"{path}\");");
-        sb.AppendLine("\t\tthrow new UnreachableException(\"This should never happen, as EnsureSuccessStatusCode should throw an exception if the status code is not successful.\");");
+        var replacements = new Dictionary<string, string>
+        {
+            ["metadata"] = EmitMetadata ? GenerateMetadata(new StringBuilder(), path, operation).ToString() : string.Empty,
+            ["summary"] = GenerateSummaryString(operation.Summary),
+            ["returnType"] = returnTypeString,
+            ["methodName"] = method + methodName,
+            ["parameters"] = string.Join(", ", allParameters),
+            ["serializerSetup"] = serializerSetup.ToString(),
+            ["queryBuilder"] = queryBuilder.ToString(),
+            ["httpMethod"] = method,
+            ["path"] = path.Remove(0, 1),
+            ["originalPath"] = path,
+            ["apiVersionHeader"] = hasApiVersionHeader ? $"\t\thttpRequest.Headers.Add(\"api-version\", \"{Document.Info.Version}\");\n" : string.Empty,
+            ["requestBody"] = bodyName is not null ? $"\t\thttpRequest.Content = JsonContent.Create({bodyName}, options: jsonSerializerOptions);\n" : string.Empty,
+            ["responseHandling"] = responseHandling.ToString()
+        };
 
-        sb.AppendLine("\t}");
-        sb.AppendLine();
-        return sb;
+        return TemplateEngine.RenderTemplate("ApiOperation", replacements);
     }
 
     private static string GenerateErrorHandling()
     {
-        StringBuilder sb = new StringBuilder();
-        sb.AppendLine("\tprivate static async Task HandleError(HttpResponseMessage response, string path)");
-        sb.AppendLine("\t{");
-        sb.AppendLine("\t\tstring errorContent = await response.Content.ReadAsStringAsync();");
-        sb.AppendLine("\t\tProblemDetails? problemDetails = JsonSerializer.Deserialize<ProblemDetails>(errorContent);");
-        sb.AppendLine("\t\tif (problemDetails is not null)");
-        sb.AppendLine("\t\t{");
-        sb.AppendLine("\t\t\tthrow new ProblemDetailsException(problemDetails);");
-        sb.AppendLine("\t\t}");
-        sb.AppendLine("\t\tif (string.IsNullOrEmpty(errorContent) is false)");
-        sb.AppendLine("\t\t{");
-        sb.AppendLine("\t\t\tproblemDetails = new ProblemDetails()");
-        sb.AppendLine("\t\t\t{");
-        sb.AppendLine("\t\t\t\tStatus = (int?)response.StatusCode,");
-        sb.AppendLine("\t\t\t\tTitle = $\"Call to {path} failed with status code {response.StatusCode}\",");
-        sb.AppendLine("\t\t\t\tDetail = errorContent");
-        sb.AppendLine("\t\t\t};");
-        sb.AppendLine("\t\t\tthrow new ProblemDetailsException(problemDetails);");
-        sb.AppendLine("\t\t}");
-        sb.AppendLine("\t\tresponse.EnsureSuccessStatusCode();");
-        sb.AppendLine("\t}");
-        return sb.ToString();
+        return TemplateEngine.RenderTemplate("ErrorHandling", new Dictionary<string, string>());
     }
 
-    /*private static string GetMethodNameFromPath(string? key)
+    private static string GetMonoMethodNameFromPath(string? key)
     {
+
+        //I want to have to two last pars of the string /individer/{id}/forbrugssteder/mapped
+
+
+
         if (string.IsNullOrEmpty(key))
-        {
-            return "object"; // Default type if key is null or empty
-        }
-        string[] split = key.Split('/');
-        StringBuilder sb;
-        if (split.Length > 2 && split[^2].Contains('{') is false)
-        {
-            sb = new StringBuilder(split[^2].Split('.')[^1] + " " + split[^1].Split('.')[^1]);
-            return sb.Replace("{", "").Replace("}", "").Replace(".", " ").Replace("-", " ").ToString();
-        }
+            return "object";
 
-        sb = new StringBuilder(split[^1]);
+        string[] segments = key.Substring(1).Split('/');
+        if (segments.Length < 2)
+            return segments[^1].ToTitleCase();
 
-        return sb.Replace(".", " ").Replace("-", " ").Replace("{", "").Replace("}", "").ToString();
-    }*/
-    
+        return segments[^2].Replace("{", "").Replace("}", "").Replace(".", "").Replace(" ", "").Replace("-", "").ToTitleCase() + segments[^1].Replace("{", "").Replace("}", "").Replace(".", "").Replace(" ", "").Replace("-", "").ToTitleCase();
+    }
+
     private static string GetMethodNameFromPath(string? key)
     {
         if (string.IsNullOrEmpty(key))
@@ -355,17 +419,19 @@ public class OperationGenerator : BaseGenerator
             raw = last;
         }
 
-        return string.Create(raw.Length, raw, (span, src) =>
-        {
-            for (var i = 0; i < src.Length; i++)
+        return string.Create(raw.Length,
+            raw,
+            (span, src) =>
             {
-                char c = src[i];
-                span[i] = c switch
+                for (var i = 0; i < src.Length; i++)
                 {
-                    '{' or '}' or '.' or '-' => ' ',
-                    _ => c
-                };
-            }
-        }).Trim();
+                    char c = src[i];
+                    span[i] = c switch
+                    {
+                        '{' or '}' or '.' or '-' => ' ',
+                        _ => c
+                    };
+                }
+            }).Trim();
     }
 }

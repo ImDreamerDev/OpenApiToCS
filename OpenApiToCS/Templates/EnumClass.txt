@@ -1,0 +1,7 @@
+using System.Text.Json.Serialization;
+namespace {{namespace}};
+{{metadata}}{{summary}}	[JsonConverter(typeof(JsonStringEnumConverter))]
+	public enum {{className}}
+{
+{{enumValues}}
+}
