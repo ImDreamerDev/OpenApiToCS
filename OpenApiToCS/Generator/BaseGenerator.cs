@@ -35,6 +35,15 @@ public class BaseGenerator(OpenApiDocument document)
         sb.Append("\t/// </summary>\n");
         return sb;
     }
+    
+    protected string GenerateSummaryString(string? summary)
+    {
+        if (string.IsNullOrEmpty(summary))
+            return string.Empty;
+            
+        StringBuilder sb = new StringBuilder();
+        return GenerateSummary(sb, summary).ToString();
+    }
 
     private readonly Dictionary<string, string> _classNamesCache = new Dictionary<string, string>(comparer: StringComparer.Ordinal);
 
@@ -92,8 +101,9 @@ public class BaseGenerator(OpenApiDocument document)
             "string" when format == "binary" => "byte[]",
             "string" when format == "uri" => "Uri",
             "string" when format is null or "string" => "string",
+            "string" when format == "email" => "string",
             "array" => GetArrayType(owningType, schema.Items),
-            _ => throw new NotImplementedException($"The schema type {type} is not implemented.")
+            _ => throw new NotImplementedException($"The schema type {type} with the format {format} is not implemented.")
         };
     }
 

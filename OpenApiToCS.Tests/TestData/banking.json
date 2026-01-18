@@ -1,0 +1,1305 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "Banking System API",
+    "version": "3.2.1",
+    "description": "Complex banking system with accounts, transactions, investments, and regulatory compliance"
+  },
+  "servers": [
+    {
+      "url": "https://api.bank.example.com/v3",
+      "description": "Production server"
+    }
+  ],
+  "paths": {
+    "/customers/{customerId}": {
+      "get": {
+        "summary": "Get customer details",
+        "operationId": "getCustomer",
+        "parameters": [
+          {
+            "name": "customerId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "includeAccounts",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "boolean",
+              "default": false
+            }
+          },
+          {
+            "name": "api-version",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Customer found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CustomerDetail"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "summary": "Update customer information",
+        "operationId": "updateCustomer",
+        "parameters": [
+          {
+            "name": "customerId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CustomerUpdate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Customer updated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CustomerDetail"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/accounts": {
+      "get": {
+        "summary": "List accounts",
+        "operationId": "listAccounts",
+        "parameters": [
+          {
+            "name": "customerId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "accountType",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "$ref": "#/components/schemas/AccountType"
+            }
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "$ref": "#/components/schemas/AccountStatus"
+            }
+          },
+          {
+            "name": "minBalance",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "number",
+              "format": "double"
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 1
+            }
+          },
+          {
+            "name": "pageSize",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 50
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Account list",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AccountListResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "summary": "Create new account",
+        "operationId": "createAccount",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AccountCreationRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Account created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Account"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/accounts/{accountId}/transactions": {
+      "get": {
+        "summary": "Get account transactions",
+        "operationId": "getAccountTransactions",
+        "parameters": [
+          {
+            "name": "accountId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "startDate",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "date"
+            }
+          },
+          {
+            "name": "endDate",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "date"
+            }
+          },
+          {
+            "name": "transactionType",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "$ref": "#/components/schemas/TransactionType"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Transaction list",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Transaction"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "summary": "Create transaction",
+        "operationId": "createTransaction",
+        "parameters": [
+          {
+            "name": "accountId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TransactionRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Transaction created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Transaction"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/investments/portfolios": {
+      "get": {
+        "summary": "List investment portfolios",
+        "operationId": "listPortfolios",
+        "parameters": [
+          {
+            "name": "customerId",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Portfolio list",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Portfolio"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/investments/portfolios/{portfolioId}/holdings": {
+      "get": {
+        "summary": "Get portfolio holdings",
+        "operationId": "getPortfolioHoldings",
+        "parameters": [
+          {
+            "name": "portfolioId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Holdings list",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Holding"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/compliance/kyc/{customerId}": {
+      "get": {
+        "summary": "Get KYC status",
+        "operationId": "getKycStatus",
+        "parameters": [
+          {
+            "name": "customerId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "KYC status",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/KycStatus"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "summary": "Update KYC information",
+        "operationId": "updateKyc",
+        "parameters": [
+          {
+            "name": "customerId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/KycUpdate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "KYC updated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/KycStatus"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/loans": {
+      "post": {
+        "summary": "Apply for loan",
+        "operationId": "applyForLoan",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LoanApplication"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Loan application submitted",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LoanApplicationResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/cards/{cardId}/activate": {
+      "post": {
+        "summary": "Activate card",
+        "operationId": "activateCard",
+        "parameters": [
+          {
+            "name": "cardId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CardActivationRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "204": {
+            "description": "Card activated"
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "CustomerDetail": {
+        "type": "object",
+        "required": ["id", "email", "status", "createdAt"],
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "email": {
+            "type": "string",
+            "format": "email"
+          },
+          "firstName": {
+            "type": "string"
+          },
+          "lastName": {
+            "type": "string"
+          },
+          "middleName": {
+            "type": "string",
+            "nullable": true
+          },
+          "dateOfBirth": {
+            "type": "string",
+            "format": "date"
+          },
+          "phoneNumber": {
+            "type": "string"
+          },
+          "address": {
+            "$ref": "#/components/schemas/Address"
+          },
+          "taxId": {
+            "type": "string",
+            "description": "Tax identification number",
+            "deprecated": true
+          },
+          "taxIdentifier": {
+            "type": "string",
+            "description": "Replacement for taxId"
+          },
+          "citizenship": {
+            "type": "string"
+          },
+          "status": {
+            "$ref": "#/components/schemas/CustomerStatus"
+          },
+          "tier": {
+            "$ref": "#/components/schemas/CustomerTier"
+          },
+          "accounts": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Account"
+            }
+          },
+          "riskProfile": {
+            "$ref": "#/components/schemas/RiskProfile"
+          },
+          "preferences": {
+            "$ref": "#/components/schemas/CustomerPreferences"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "lastLoginAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          }
+        }
+      },
+      "CustomerUpdate": {
+        "type": "object",
+        "properties": {
+          "firstName": {
+            "type": "string"
+          },
+          "lastName": {
+            "type": "string"
+          },
+          "phoneNumber": {
+            "type": "string"
+          },
+          "address": {
+            "$ref": "#/components/schemas/Address"
+          },
+          "preferences": {
+            "$ref": "#/components/schemas/CustomerPreferences"
+          }
+        }
+      },
+      "Address": {
+        "type": "object",
+        "required": ["street", "city", "country", "postalCode"],
+        "properties": {
+          "street": {
+            "type": "string"
+          },
+          "street2": {
+            "type": "string",
+            "nullable": true
+          },
+          "city": {
+            "type": "string"
+          },
+          "state": {
+            "type": "string"
+          },
+          "country": {
+            "type": "string"
+          },
+          "postalCode": {
+            "type": "string"
+          },
+          "coordinates": {
+            "$ref": "#/components/schemas/GeoCoordinates"
+          }
+        }
+      },
+      "GeoCoordinates": {
+        "type": "object",
+        "required": ["latitude", "longitude"],
+        "properties": {
+          "latitude": {
+            "type": "number",
+            "format": "double"
+          },
+          "longitude": {
+            "type": "number",
+            "format": "double"
+          }
+        }
+      },
+      "CustomerStatus": {
+        "type": "string",
+        "enum": ["active", "inactive", "suspended", "closed", "pending_verification"]
+      },
+      "CustomerTier": {
+        "type": "string",
+        "enum": ["basic", "silver", "gold", "platinum", "private_banking"]
+      },
+      "RiskProfile": {
+        "type": "object",
+        "required": ["level", "lastAssessedAt"],
+        "properties": {
+          "level": {
+            "$ref": "#/components/schemas/RiskLevel"
+          },
+          "score": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "factors": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "lastAssessedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "RiskLevel": {
+        "type": "string",
+        "enum": ["low", "medium", "high", "very_high"]
+      },
+      "CustomerPreferences": {
+        "type": "object",
+        "properties": {
+          "language": {
+            "type": "string",
+            "default": "en"
+          },
+          "currency": {
+            "type": "string",
+            "default": "USD"
+          },
+          "notifications": {
+            "$ref": "#/components/schemas/NotificationPreferences"
+          },
+          "paperlessStatements": {
+            "type": "boolean",
+            "default": false
+          }
+        }
+      },
+      "NotificationPreferences": {
+        "type": "object",
+        "properties": {
+          "email": {
+            "type": "boolean",
+            "default": true
+          },
+          "sms": {
+            "type": "boolean",
+            "default": false
+          },
+          "push": {
+            "type": "boolean",
+            "default": true
+          },
+          "transactionAlerts": {
+            "type": "boolean",
+            "default": true
+          },
+          "securityAlerts": {
+            "type": "boolean",
+            "default": true
+          }
+        }
+      },
+      "Account": {
+        "type": "object",
+        "required": ["id", "accountNumber", "accountType", "currency", "balance", "status", "openedAt"],
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "accountNumber": {
+            "type": "string"
+          },
+          "accountType": {
+            "$ref": "#/components/schemas/AccountType"
+          },
+          "currency": {
+            "type": "string"
+          },
+          "balance": {
+            "$ref": "#/components/schemas/Money"
+          },
+          "availableBalance": {
+            "$ref": "#/components/schemas/Money"
+          },
+          "status": {
+            "$ref": "#/components/schemas/AccountStatus"
+          },
+          "interestRate": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          },
+          "overdraftLimit": {
+            "$ref": "#/components/schemas/Money"
+          },
+          "customerId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "metadata": {
+            "type": "object",
+            "additionalProperties": true
+          },
+          "openedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "closedAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          }
+        }
+      },
+      "AccountType": {
+        "type": "string",
+        "enum": ["checking", "savings", "money_market", "certificate_of_deposit", "investment", "loan"]
+      },
+      "AccountStatus": {
+        "type": "string",
+        "enum": ["active", "inactive", "frozen", "closed"]
+      },
+      "Money": {
+        "type": "object",
+        "required": ["amount", "currency"],
+        "properties": {
+          "amount": {
+            "type": "number",
+            "format": "double"
+          },
+          "currency": {
+            "type": "string"
+          }
+        }
+      },
+      "AccountCreationRequest": {
+        "type": "object",
+        "required": ["customerId", "accountType", "currency"],
+        "properties": {
+          "customerId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "accountType": {
+            "$ref": "#/components/schemas/AccountType"
+          },
+          "currency": {
+            "type": "string"
+          },
+          "initialDeposit": {
+            "$ref": "#/components/schemas/Money"
+          },
+          "overdraftProtection": {
+            "type": "boolean",
+            "default": false
+          }
+        }
+      },
+      "AccountListResponse": {
+        "type": "object",
+        "required": ["accounts", "pagination"],
+        "properties": {
+          "accounts": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Account"
+            }
+          },
+          "pagination": {
+            "$ref": "#/components/schemas/PaginationInfo"
+          },
+          "summary": {
+            "$ref": "#/components/schemas/AccountSummary"
+          }
+        }
+      },
+      "PaginationInfo": {
+        "type": "object",
+        "required": ["page", "pageSize", "totalItems", "totalPages"],
+        "properties": {
+          "page": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "pageSize": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "totalItems": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "totalPages": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "hasNextPage": {
+            "type": "boolean"
+          },
+          "hasPreviousPage": {
+            "type": "boolean"
+          }
+        }
+      },
+      "AccountSummary": {
+        "type": "object",
+        "properties": {
+          "totalBalance": {
+            "$ref": "#/components/schemas/Money"
+          },
+          "accountsByType": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        }
+      },
+      "Transaction": {
+        "type": "object",
+        "required": ["id", "accountId", "type", "amount", "status", "timestamp"],
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "accountId": {
+            "type": "string"
+          },
+          "type": {
+            "$ref": "#/components/schemas/TransactionType"
+          },
+          "amount": {
+            "$ref": "#/components/schemas/Money"
+          },
+          "description": {
+            "type": "string"
+          },
+          "category": {
+            "type": "string"
+          },
+          "merchant": {
+            "$ref": "#/components/schemas/Merchant"
+          },
+          "status": {
+            "$ref": "#/components/schemas/TransactionStatus"
+          },
+          "referenceNumber": {
+            "type": "string"
+          },
+          "relatedTransactionId": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          },
+          "metadata": {
+            "type": "object",
+            "additionalProperties": true
+          },
+          "timestamp": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "postedAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          }
+        }
+      },
+      "TransactionType": {
+        "type": "string",
+        "enum": ["deposit", "withdrawal", "transfer", "payment", "fee", "interest", "refund", "adjustment"]
+      },
+      "TransactionStatus": {
+        "type": "string",
+        "enum": ["pending", "processing", "completed", "failed", "reversed", "cancelled"]
+      },
+      "Merchant": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "category": {
+            "type": "string"
+          },
+          "location": {
+            "$ref": "#/components/schemas/Address"
+          }
+        }
+      },
+      "TransactionRequest": {
+        "type": "object",
+        "required": ["type", "amount"],
+        "properties": {
+          "type": {
+            "$ref": "#/components/schemas/TransactionType"
+          },
+          "amount": {
+            "$ref": "#/components/schemas/Money"
+          },
+          "description": {
+            "type": "string"
+          },
+          "toAccountId": {
+            "type": "string",
+            "nullable": true
+          },
+          "scheduledFor": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          }
+        }
+      },
+      "Portfolio": {
+        "type": "object",
+        "required": ["id", "name", "customerId", "totalValue", "createdAt"],
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string"
+          },
+          "customerId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "strategy": {
+            "$ref": "#/components/schemas/InvestmentStrategy"
+          },
+          "totalValue": {
+            "$ref": "#/components/schemas/Money"
+          },
+          "totalReturn": {
+            "type": "number",
+            "format": "double"
+          },
+          "totalReturnPercentage": {
+            "type": "number",
+            "format": "double"
+          },
+          "holdings": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Holding"
+            }
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "InvestmentStrategy": {
+        "type": "string",
+        "enum": ["conservative", "moderate", "aggressive", "custom"]
+      },
+      "Holding": {
+        "type": "object",
+        "required": ["id", "symbol", "quantity", "currentPrice", "totalValue"],
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "symbol": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "assetType": {
+            "$ref": "#/components/schemas/AssetType"
+          },
+          "quantity": {
+            "type": "number",
+            "format": "double"
+          },
+          "averageCost": {
+            "type": "number",
+            "format": "double"
+          },
+          "currentPrice": {
+            "type": "number",
+            "format": "double"
+          },
+          "totalValue": {
+            "$ref": "#/components/schemas/Money"
+          },
+          "unrealizedGainLoss": {
+            "type": "number",
+            "format": "double"
+          },
+          "unrealizedGainLossPercentage": {
+            "type": "number",
+            "format": "double"
+          },
+          "purchasedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "AssetType": {
+        "type": "string",
+        "enum": ["stock", "bond", "mutual_fund", "etf", "cryptocurrency", "commodity", "real_estate"]
+      },
+      "KycStatus": {
+        "type": "object",
+        "required": ["customerId", "status", "lastUpdatedAt"],
+        "properties": {
+          "customerId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "status": {
+            "$ref": "#/components/schemas/KycVerificationStatus"
+          },
+          "level": {
+            "$ref": "#/components/schemas/KycLevel"
+          },
+          "documents": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/KycDocument"
+            }
+          },
+          "verifiedAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "expiresAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "lastUpdatedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "notes": {
+            "type": "string",
+            "nullable": true
+          }
+        }
+      },
+      "KycVerificationStatus": {
+        "type": "string",
+        "enum": ["not_started", "in_progress", "pending_review", "verified", "rejected", "expired"]
+      },
+      "KycLevel": {
+        "type": "string",
+        "enum": ["basic", "intermediate", "enhanced"]
+      },
+      "KycDocument": {
+        "type": "object",
+        "required": ["id", "type", "status"],
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "type": {
+            "$ref": "#/components/schemas/DocumentType"
+          },
+          "status": {
+            "$ref": "#/components/schemas/DocumentStatus"
+          },
+          "uploadedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "verifiedAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "expiresAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          }
+        }
+      },
+      "DocumentType": {
+        "type": "string",
+        "enum": ["passport", "drivers_license", "national_id", "utility_bill", "bank_statement", "tax_return"]
+      },
+      "DocumentStatus": {
+        "type": "string",
+        "enum": ["uploaded", "pending_verification", "verified", "rejected", "expired"]
+      },
+      "KycUpdate": {
+        "type": "object",
+        "required": ["documents"],
+        "properties": {
+          "documents": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/KycDocumentUpload"
+            }
+          },
+          "additionalInformation": {
+            "type": "string"
+          }
+        }
+      },
+      "KycDocumentUpload": {
+        "type": "object",
+        "required": ["type", "fileData"],
+        "properties": {
+          "type": {
+            "$ref": "#/components/schemas/DocumentType"
+          },
+          "fileData": {
+            "type": "string",
+            "format": "binary"
+          },
+          "expiresAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "LoanApplication": {
+        "type": "object",
+        "required": ["customerId", "loanType", "amount", "term"],
+        "properties": {
+          "customerId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "loanType": {
+            "$ref": "#/components/schemas/LoanType"
+          },
+          "amount": {
+            "$ref": "#/components/schemas/Money"
+          },
+          "term": {
+            "type": "integer",
+            "format": "int32",
+            "description": "Term in months"
+          },
+          "purpose": {
+            "type": "string"
+          },
+          "collateral": {
+            "$ref": "#/components/schemas/Collateral"
+          },
+          "employmentInfo": {
+            "$ref": "#/components/schemas/EmploymentInfo"
+          },
+          "annualIncome": {
+            "$ref": "#/components/schemas/Money"
+          },
+          "monthlyExpenses": {
+            "$ref": "#/components/schemas/Money"
+          }
+        }
+      },
+      "LoanType": {
+        "type": "string",
+        "enum": ["personal", "auto", "mortgage", "business", "student", "line_of_credit"]
+      },
+      "Collateral": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "estimatedValue": {
+            "$ref": "#/components/schemas/Money"
+          }
+        }
+      },
+      "EmploymentInfo": {
+        "type": "object",
+        "required": ["employerName", "position", "employmentType"],
+        "properties": {
+          "employerName": {
+            "type": "string"
+          },
+          "position": {
+            "type": "string"
+          },
+          "employmentType": {
+            "$ref": "#/components/schemas/EmploymentType"
+          },
+          "startDate": {
+            "type": "string",
+            "format": "date"
+          },
+          "endDate": {
+            "type": "string",
+            "format": "date",
+            "nullable": true
+          }
+        }
+      },
+      "EmploymentType": {
+        "type": "string",
+        "enum": ["full_time", "part_time", "contract", "self_employed", "unemployed", "retired"]
+      },
+      "LoanApplicationResponse": {
+        "type": "object",
+        "required": ["applicationId", "status", "submittedAt"],
+        "properties": {
+          "applicationId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "status": {
+            "$ref": "#/components/schemas/LoanApplicationStatus"
+          },
+          "preApprovedAmount": {
+            "$ref": "#/components/schemas/Money"
+          },
+          "estimatedInterestRate": {
+            "type": "number",
+            "format": "double"
+          },
+          "submittedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "expectedDecisionDate": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "LoanApplicationStatus": {
+        "type": "string",
+        "enum": ["submitted", "under_review", "approved", "rejected", "more_info_required"]
+      },
+      "CardActivationRequest": {
+        "type": "object",
+        "required": ["lastFourDigits", "cvv", "expiryDate"],
+        "properties": {
+          "lastFourDigits": {
+            "type": "string"
+          },
+          "cvv": {
+            "type": "string"
+          },
+          "expiryDate": {
+            "type": "string"
+          },
+          "pin": {
+            "type": "string"
+          }
+        }
+      }
+    }
+  }
+}

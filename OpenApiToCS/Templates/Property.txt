@@ -1,0 +1,2 @@
+{{summary}}{{deprecated}}{{required}}	[JsonPropertyName("{{jsonPropertyName}}")]
+	public {{propertyType}}{{nullable}} {{propertyName}} { get; init; }

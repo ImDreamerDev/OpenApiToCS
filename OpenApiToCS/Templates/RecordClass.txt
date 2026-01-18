@@ -1,0 +1,6 @@
+{{usings}}
+namespace {{namespace}};
+{{metadata}}{{summary}}public record {{className}}{{baseClass}}
+{
+{{properties}}
+}

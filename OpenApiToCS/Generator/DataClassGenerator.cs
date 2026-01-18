@@ -15,7 +15,7 @@ public class DataClassGenerator(OpenApiDocument document) : BaseGenerator(docume
         string namespaceName = GetClassNameFromKey(Document.Info.Title).ToTitleCase() + "ApiClient" + "V" + Document.Info.Version[0] + ".Models";
         foreach (var schema in Document.Components.Schemas)
         {
-            if (schema.Value.Type is not null and not "object" && schema.Value is { Type: not "string", Enum: null, Items: null })
+            if (schema.Value.Type is not null and not "object" && schema.Value is { Type: not "string", Enum: null, Items: null, AllOf: null, OneOf: null, AnyOf: null })
             {
                 Console.Error.WriteLine("Unsupported schema type: " + schema.Value.Type + " for key: " + schema.Key);
                 continue;
@@ -43,6 +43,43 @@ public class DataClassGenerator(OpenApiDocument document) : BaseGenerator(docume
                 _result.Classes.Add(className, @class);
                 continue;
             }
+
+            // Handle oneOf at schema level
+            if (schema.Value.OneOf is not null)
+            {
+                var converter = GenerateOneOfAtRoot(className, namespaceName, schema.Key, schema.Value);
+                if (converter is not null)
+                {
+                    foreach (var oneOfClass in converter.OneOfs)
+                    {
+                        _result.Classes.Add(oneOfClass.Name, oneOfClass);
+                    }
+                }
+                continue;
+            }
+
+            // Handle anyOf at schema level (similar to oneOf)
+            if (schema.Value.AnyOf is not null)
+            {
+                var converter = GenerateAnyOfAtRoot(className, namespaceName, schema.Key, schema.Value);
+                if (converter is not null)
+                {
+                    foreach (var anyOfClass in converter.OneOfs)
+                    {
+                        _result.Classes.Add(anyOfClass.Name, anyOfClass);
+                    }
+                }
+                continue;
+            }
+
+            // Handle allOf at schema level (composition/inheritance)
+            if (schema.Value.AllOf is not null)
+            {
+                @class = GenerateAllOfClass(className, namespaceName, schema.Key, schema.Value);
+                _result.Classes.Add(className, @class);
+                continue;
+            }
+
             if (schema.Value.Items is not null && schema.Value.Type == "array" && schema.Value.Items.Type == "object" && schema.Value.Items.Properties is not null && schema.Value.Items.Reference is null)
             {
                 @class = GenerateRecord(className, namespaceName, schema.Key, schema.Value.Items);
@@ -71,33 +108,36 @@ public class DataClassGenerator(OpenApiDocument document) : BaseGenerator(docume
 
     private Class GenerateEnum(string className, string namespaceName, string key, OpenApiSchema schema)
     {
-        StringBuilder sb = new StringBuilder();
-
-        sb.AppendLine("using System.Text.Json.Serialization;");
-        sb.AppendLine($"namespace {namespaceName};");
-        sb = GenerateMetadata(sb, key, schema);
-        sb = GenerateSummary(sb, schema.Description);
-        sb.AppendLine("\t[JsonConverter(typeof(JsonStringEnumConverter))]");
-        sb.AppendLine($"\tpublic enum {className}");
-        sb.AppendLine("{");
+        StringBuilder enumValues = new StringBuilder();
         foreach (object enumValue in schema.Enum!)
         {
-            sb.AppendLine($"        {enumValue.ToString()},");
+            enumValues.AppendLine($"        {enumValue.ToString()},");
         }
-        sb.AppendLine("}");
-        return new Class(className, namespaceName, sb.ToString(), [], []);
+        
+        var replacements = new Dictionary<string, string>
+        {
+            ["namespace"] = namespaceName,
+            ["className"] = className,
+            ["metadata"] = EmitMetadata ? GenerateMetadata(new StringBuilder(), key, schema).ToString() : string.Empty,
+            ["summary"] = GenerateSummaryString(schema.Description),
+            ["enumValues"] = enumValues.ToString()
+        };
+        
+        string source = TemplateEngine.RenderTemplate("EnumClass", replacements);
+        return new Class(className, namespaceName, source, [], []);
     }
 
     private Class GenerateRecord(string className, string namespaceName, string key, OpenApiSchema schema, string? baseClass = null)
     {
-        StringBuilder sb = new StringBuilder();
+        HashSet<string> usings = new HashSet<string>();
+        
         if (schema.Reference is not null)
         {
-            sb.AppendLine($"using {namespaceName};");
+            usings.Add($"using {namespaceName};");
         }
         if (schema.Required?.Count != 0)
         {
-            sb.AppendLine("using System.ComponentModel.DataAnnotations;");
+            usings.Add("using System.ComponentModel.DataAnnotations;");
         }
 
         if (schema.Properties is not null)
@@ -106,28 +146,22 @@ public class DataClassGenerator(OpenApiDocument document) : BaseGenerator(docume
             {
                 if (prop.Reference is not null)
                 {
-                    sb.AppendLine($"using {namespaceName};");
+                    usings.Add($"using {namespaceName};");
                 }
             }
         }
 
-        sb.AppendLine("using System.Text.Json.Serialization;");
-        sb.AppendLine($"namespace {namespaceName};");
-        sb = GenerateMetadata(sb, key, schema);
-        sb.Append("public record " + className);
-        if (baseClass is not null)
-        {
-            sb.Append(" : " + baseClass);
-        }
-        sb.AppendLine();
-        sb.AppendLine("{");
+        usings.Add("using System.Text.Json.Serialization;");
+        
         List<Property> properties = [];
         List<OneOfConverter> oneOfConverters = [];
+        StringBuilder propertiesBuilder = new StringBuilder();
+        
         if (schema.Properties is not null)
         {
             foreach (var property in schema.Properties)
             {
-                Property prop = GenerateProperty(sb, property, schema, className);
+                Property prop = GenerateProperty(propertiesBuilder, property, schema, className);
                 properties.Add(prop);
 
                 if (property.Value.Items?.OneOf == null)
@@ -141,29 +175,28 @@ public class DataClassGenerator(OpenApiDocument document) : BaseGenerator(docume
             }
         }
 
-        sb.AppendLine("}");
-        return new Class(className, namespaceName, sb.ToString(), properties, oneOfConverters);
+        var replacements = new Dictionary<string, string>
+        {
+            ["usings"] = string.Join(Environment.NewLine, usings),
+            ["namespace"] = namespaceName,
+            ["className"] = className,
+            ["baseClass"] = baseClass is not null ? $" : {baseClass}" : string.Empty,
+            ["metadata"] = EmitMetadata ? GenerateMetadata(new StringBuilder(), key, schema).ToString() : string.Empty,
+            ["summary"] = GenerateSummaryString(schema.Description),
+            ["properties"] = propertiesBuilder.ToString()
+        };
+        
+        string source = TemplateEngine.RenderTemplate("RecordClass", replacements);
+        return new Class(className, namespaceName, source, properties, oneOfConverters);
     }
 
     private Property GenerateProperty(StringBuilder sb, KeyValuePair<string, OpenApiSchema> property, OpenApiSchema schema, string className)
     {
-        GenerateSummary(sb, property.Value.Description);
-
-        if (property.Value.Deprecated)
-        {
-            sb.AppendLine("\t[Obsolete(\"This property is deprecated.\")]");
-        }
-
         bool isRequired = schema.Required is not null && schema.Required.Contains(property.Key);
-        if (isRequired)
-        {
-            sb.AppendLine("\t[Required]");
-        }
-
+        
         string propertyName = property.Key.ToTitleCase();
         string? propertyType;
 
-        sb.AppendLine("\t[JsonPropertyName(\"" + property.Key + "\")]");
         if (property.Value.Type is not "object" and not null)
         {
             if (property.Value.Items?.OneOf is not null)
@@ -205,8 +238,19 @@ public class DataClassGenerator(OpenApiDocument document) : BaseGenerator(docume
             propertyName += "Property";
         }
 
-        sb.AppendLine($"\tpublic {propertyType}{(property.Value.Nullable ? "?" : "")} {propertyName} {{ get; init; }}");
-        sb.AppendLine();
+        var replacements = new Dictionary<string, string>
+        {
+            ["summary"] = GenerateSummaryString(property.Value.Description),
+            ["deprecated"] = property.Value.Deprecated ? "\t[Obsolete(\"This property is deprecated.\")]\n" : string.Empty,
+            ["required"] = isRequired ? "\t[Required]\n" : string.Empty,
+            ["jsonPropertyName"] = property.Key,
+            ["propertyType"] = propertyType,
+            ["nullable"] = property.Value.Nullable ? "?" : string.Empty,
+            ["propertyName"] = propertyName
+        };
+        
+        string propertyCode = TemplateEngine.RenderTemplate("Property", replacements);
+        sb.Append(propertyCode);
 
         if (property.Value.Items is not null && property.Value.Items.Type == "object" && property.Value.Items.Reference is null && property.Value.Items.OneOf is null)
         {
@@ -252,144 +296,181 @@ public class DataClassGenerator(OpenApiDocument document) : BaseGenerator(docume
 
     public static (string className, string source) GenerateJsonConvertersForOneOf(string baseClassName, string namespaceName, List<string> classNames)
     {
-        StringBuilder sb = new StringBuilder();
         string converterName = baseClassName + "ConverterJson";
-        sb.AppendLine("using System.Text.Json;");
-        sb.AppendLine("using System.Text.Json.Serialization;");
-        sb.AppendLine("using System.Diagnostics;");
-        sb.AppendLine("using System.Reflection;");
-        sb.AppendLine();
-        sb.AppendLine($"namespace {namespaceName};");
-        sb.AppendLine();
-        sb.AppendLine($"public class {converterName} : JsonConverter<{baseClassName}>");
-        sb.AppendLine("{");
-        sb.AppendLine();
+        
+        StringBuilder propertyHashSets = new StringBuilder();
+        StringBuilder staticConstructorBody = new StringBuilder();
+        StringBuilder propertyMatching = new StringBuilder();
+        
+        foreach (string className in classNames)
+        {
+            propertyHashSets.AppendLine($"\tprivate static readonly HashSet<string> _propertiesFor{className} = [];");
+        }
 
         foreach (string className in classNames)
         {
-            sb.AppendLine($"\tprivate static readonly HashSet<string> _propertiesFor{className} = [];");
-            sb.AppendLine();
+            staticConstructorBody.AppendLine($"\t\tforeach (PropertyInfo prop in typeof({className}).GetProperties())");
+            staticConstructorBody.AppendLine($"\t\t{{");
+            staticConstructorBody.AppendLine($"\t\t\t_propertiesFor{className}.Add(prop.Name);");
+            staticConstructorBody.AppendLine($"\t\t}}");
         }
 
-        sb.AppendLine($"\tprivate readonly Dictionary<string, object?> _valuesFor{baseClassName} = [];");
-        sb.AppendLine();
-
-        sb.AppendLine($"\tstatic {converterName}()");
-        sb.AppendLine($"\t{{");
         foreach (string className in classNames)
         {
-            sb.AppendLine($"\t\tforeach (PropertyInfo prop in typeof({className}).GetProperties())");
-            sb.AppendLine($"\t\t{{");
-            sb.AppendLine($"\t\t\t_propertiesFor{className}.Add(prop.Name);");
-            sb.AppendLine($"\t\t}}");
+            propertyMatching.AppendLine($"\t\t\t\t\tif (_propertiesFor{className}.Contains(propertyName))");
+            propertyMatching.AppendLine($"\t\t\t\t\t{{");
+            propertyMatching.AppendLine($"\t\t\t\t\t\tif (scopeCount == 0)");
+            propertyMatching.AppendLine($"\t\t\t\t\t\t{{");
+            propertyMatching.AppendLine($"\t\t\t\t\t\t\tresult ??= new {className}();");
+            propertyMatching.AppendLine($"\t\t\t\t\t\t}}");
+            propertyMatching.AppendLine($"\t\t\t\t\t\telse");
+            propertyMatching.AppendLine($"\t\t\t\t\t\t{{");
+            propertyMatching.AppendLine($"\t\t\t\t\t\t\t_valuesFor{baseClassName}.Add(propertyName, null);");
+            propertyMatching.AppendLine($"\t\t\t\t\t\t}}");
+            propertyMatching.AppendLine($"\t\t\t\t\t}}");
         }
-        sb.AppendLine($"\t}}");
 
-        StringBuilder stringBuilderForMatchProperty = new StringBuilder();
-        stringBuilderForMatchProperty.AppendLine();
-        foreach (string className in classNames)
+        var replacements = new Dictionary<string, string>
         {
-            stringBuilderForMatchProperty.AppendLine($"\t\t\t\t\tif (_propertiesFor{className}.Contains(propertyName))");
-            stringBuilderForMatchProperty.AppendLine($"\t\t\t\t\t{{");
-            stringBuilderForMatchProperty.AppendLine($"\t\t\t\t\t\tif (scopeCount == 0)");
-            stringBuilderForMatchProperty.AppendLine($"\t\t\t\t\t\t{{");
-            stringBuilderForMatchProperty.AppendLine($"\t\t\t\t\t\t\tresult ??= new {className}();");
-            stringBuilderForMatchProperty.AppendLine($"\t\t\t\t\t\t}}");
-            stringBuilderForMatchProperty.AppendLine($"\t\t\t\t\t\telse");
-            stringBuilderForMatchProperty.AppendLine($"\t\t\t\t\t\t{{");
-            stringBuilderForMatchProperty.AppendLine($"\t\t\t\t\t\t\t_valuesFor{baseClassName}.Add(propertyName, null);");
-            stringBuilderForMatchProperty.AppendLine($"\t\t\t\t\t\t}}");
-            stringBuilderForMatchProperty.AppendLine($"\t\t\t\t\t}}");
+            ["namespace"] = namespaceName,
+            ["converterName"] = converterName,
+            ["baseClassName"] = baseClassName,
+            ["propertyHashSets"] = propertyHashSets.ToString(),
+            ["staticConstructorBody"] = staticConstructorBody.ToString(),
+            ["propertyMatching"] = propertyMatching.ToString()
+        };
+        
+        string source = TemplateEngine.RenderTemplate("OneOfConverter", replacements);
+        return (converterName, source);
+    }
+
+    private OneOfConverter? GenerateOneOfAtRoot(string className, string namespaceName, string key, OpenApiSchema schema)
+    {
+        if (schema.OneOf is null || schema.OneOf.Length == 0)
+            return null;
+
+        var oneOfClasses = new List<Class>();
+        var classNames = new List<string>();
+
+        // Create base class
+        Class baseClass = GenerateRecord(className, namespaceName, key, new OpenApiSchema());
+        oneOfClasses.Add(baseClass);
+        _generatedSchemas.Add(className);
+
+        // Generate derived classes for each oneOf variant
+        for (int i = 0; i < schema.OneOf.Length; i++)
+        {
+            OpenApiSchema variant = schema.OneOf[i];
+            string variantClassName = variant.Title ?? $"{className}Variant{i + 1}";
+            variantClassName = GetClassNameFromKey(variantClassName).ToTitleCase();
+
+            classNames.Add(variantClassName);
+            Class variantClass = GenerateRecord(variantClassName, namespaceName, variantClassName, variant, className);
+            oneOfClasses.Add(variantClass);
+            _generatedSchemas.Add(variantClassName);
         }
-        sb.AppendLine();
 
-        //language=cs
-        var source =
-            $$"""
-                  public override {{baseClassName}}? Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
-                  {
-                      var scopeCount = 0;
-                      string currentProperty = string.Empty;
-                      {{baseClassName}}? result = null;
-                      while (reader.Read())
-                      {
-                          switch (reader.TokenType)
-                          {
-                              case JsonTokenType.StartArray:
-                              case JsonTokenType.StartObject:
-                                  scopeCount++;
-                                  break;
-                              case JsonTokenType.EndArray:
-                              case JsonTokenType.EndObject:
-                              {
-                                  if (scopeCount == 0)
-                                  {
-                                      if (result is null)
-                                      {
-                                          throw new ArgumentException("We failed to determine the type of the OneOf. This is likely due to an invalid JSON structure or missing properties.");
-                                      }
+        (string converterClassName, string converterSource) = GenerateJsonConvertersForOneOf(className, namespaceName, classNames);
 
-                                      Type resultType = result.GetType();
-                                      foreach (var pair in _valuesFor{{baseClassName}})
-                                      {
-                                          PropertyInfo? property = resultType.GetProperty(pair.Key);
-                                          if (property is null)
-                                          {
-                                              property = resultType.GetProperties().FirstOrDefault(x => x.GetCustomAttributes<JsonPropertyNameAttribute>().FirstOrDefault(attr => attr.Name == pair.Key) is not null);
-                                              if (property is null)
-                                                  throw new ArgumentException($"Property '{pair.Key}' not found in type '{resultType.Name}'.");
-                                          }
-                                          property.SetValue(result, pair.Value);
-                                      }
+        return new OneOfConverter(converterClassName, namespaceName, converterSource, oneOfClasses);
+    }
 
-                                      return result;
-                                  }
-                                  scopeCount--;
-                                  break;
-                              }
-                              case JsonTokenType.PropertyName:
-                              {
-                                  string propertyName = reader.GetString()!;
-                                  currentProperty = propertyName;
-                                  {{stringBuilderForMatchProperty}}
-                                  break;
-                              }
-                              case JsonTokenType.None:
-                              case JsonTokenType.Comment:
-                                  break;
-                              case JsonTokenType.String:
-                                  _valuesForBeskeddataOneOf[currentProperty] = reader.GetString();
-                                  break;
-                              case JsonTokenType.Number:
-                                  _valuesForBeskeddataOneOf[currentProperty] = reader.GetDouble();
-                                  break;
-                              case JsonTokenType.True:
-                                  _valuesForBeskeddataOneOf[currentProperty] = true;
-                                  break;
-                              case JsonTokenType.False:
-                                  _valuesForBeskeddataOneOf[currentProperty] = false;
-                                  break;
-                              case JsonTokenType.Null:
-                                  _valuesForBeskeddataOneOf[currentProperty] = null;
-                                  break;
-                              default:
-                                  throw new ArgumentOutOfRangeException();
-                          }
-                      }
+    private OneOfConverter? GenerateAnyOfAtRoot(string className, string namespaceName, string key, OpenApiSchema schema)
+    {
+        if (schema.AnyOf is null || schema.AnyOf.Length == 0)
+            return null;
 
-                      throw new UnreachableException("The JSON reader did not complete reading the OneOf structure. This may indicate an incomplete or malformed JSON input.");
-                  }
+        var anyOfClasses = new List<Class>();
+        var classNames = new List<string>();
 
-                  public override void Write(Utf8JsonWriter writer, BeskeddataOneOf value, JsonSerializerOptions options)
-                  {
-                      throw new NotImplementedException();
-                  }  
-              }
-              """;
+        // Create base class
+        Class baseClass = GenerateRecord(className, namespaceName, key, new OpenApiSchema());
+        anyOfClasses.Add(baseClass);
+        _generatedSchemas.Add(className);
 
-        sb.Append(source);
+        // Generate derived classes for each anyOf variant
+        for (int i = 0; i < schema.AnyOf.Length; i++)
+        {
+            OpenApiSchema variant = schema.AnyOf[i];
+            string variantClassName = variant.Title ?? $"{className}Variant{i + 1}";
+            variantClassName = GetClassNameFromKey(variantClassName).ToTitleCase();
 
-        return ($"{converterName}", sb.ToString());
+            classNames.Add(variantClassName);
+            Class variantClass = GenerateRecord(variantClassName, namespaceName, variantClassName, variant, className);
+            anyOfClasses.Add(variantClass);
+            _generatedSchemas.Add(variantClassName);
+        }
+
+        (string converterClassName, string converterSource) = GenerateJsonConvertersForOneOf(className, namespaceName, classNames);
+
+        return new OneOfConverter(converterClassName, namespaceName, converterSource, anyOfClasses);
+    }
+
+    private Class GenerateAllOfClass(string className, string namespaceName, string key, OpenApiSchema schema)
+    {
+        if (schema.AllOf is null || schema.AllOf.Length == 0)
+            return GenerateRecord(className, namespaceName, key, schema);
+
+        // Merge all properties from allOf schemas
+        var mergedProperties = new Dictionary<string, OpenApiSchema>();
+        var mergedRequired = new List<string>();
+        string? baseClassName = null;
+        string? description = schema.Description;
+
+        foreach (var allOfSchema in schema.AllOf)
+        {
+            OpenApiSchema resolvedSchema;
+
+            // Resolve $ref if present
+            if (allOfSchema.Reference is not null)
+            {
+                var refSchema = GetSchemaFromReference(allOfSchema.Reference);
+                if (refSchema is null)
+                    continue;
+                
+                // Use the referenced class as base class (simple inheritance)
+                if (baseClassName is null && (refSchema.Properties?.Count ?? 0) > 0)
+                {
+                    baseClassName = GetClassNameFromKey(allOfSchema.Reference).ToTitleCase();
+                    continue; // Don't merge properties from base class
+                }
+                
+                resolvedSchema = refSchema;
+            }
+            else
+            {
+                resolvedSchema = allOfSchema;
+            }
+
+            // Merge properties
+            if (resolvedSchema.Properties is not null && resolvedSchema.Properties.Count > 0)
+            {
+                foreach (var prop in resolvedSchema.Properties)
+                {
+                    mergedProperties[prop.Key] = prop.Value;
+                }
+            }
+
+            // Merge required fields
+            if (resolvedSchema.Required is not null && resolvedSchema.Required.Count > 0)
+            {
+                mergedRequired.AddRange(resolvedSchema.Required);
+            }
+
+            // Use description if available
+            description ??= resolvedSchema.Description;
+        }
+
+        // Create merged schema
+        var mergedSchema = new OpenApiSchema
+        {
+            Type = "object",
+            Properties = mergedProperties.Count > 0 ? mergedProperties : null,
+            Required = mergedRequired.Count > 0 ? mergedRequired : null,
+            Description = description
+        };
+
+        return GenerateRecord(className, namespaceName, key, mergedSchema, baseClassName);
     }
 
 }

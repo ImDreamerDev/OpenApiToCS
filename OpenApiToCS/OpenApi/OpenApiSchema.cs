@@ -34,5 +34,17 @@ public class OpenApiSchema
     public OpenApiSchema[]? OneOf { get; init; }
     [JsonPropertyName("allOf")]
     public OpenApiSchema[]? AllOf { get; init; }
+    [JsonPropertyName("anyOf")]
+    public OpenApiSchema[]? AnyOf { get; init; }
+    [JsonPropertyName("discriminator")]
+    public OpenApiDiscriminator? Discriminator { get; init; }
 
+}
+
+public class OpenApiDiscriminator
+{
+    [JsonPropertyName("propertyName")]
+    public string? PropertyName { get; init; }
+    [JsonPropertyName("mapping")]
+    public Dictionary<string, string>? Mapping { get; init; }
 }

@@ -1,0 +1,94 @@
+using System.Text.Json;
+using System.Text.Json.Serialization;
+using System.Diagnostics;
+using System.Reflection;
+
+namespace {{namespace}};
+
+public class {{converterName}} : JsonConverter<{{baseClassName}}>
+{
+{{propertyHashSets}}
+	private readonly Dictionary<string, object?> _valuesFor{{baseClassName}} = [];
+
+	static {{converterName}}()
+	{
+{{staticConstructorBody}}	}
+
+	public override {{baseClassName}}? Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
+	{
+		var scopeCount = 0;
+		string currentProperty = string.Empty;
+		{{baseClassName}}? result = null;
+		while (reader.Read())
+		{
+			switch (reader.TokenType)
+			{
+				case JsonTokenType.StartArray:
+				case JsonTokenType.StartObject:
+					scopeCount++;
+					break;
+				case JsonTokenType.EndArray:
+				case JsonTokenType.EndObject:
+				{
+					if (scopeCount == 0)
+					{
+						if (result is null)
+						{
+							throw new ArgumentException("We failed to determine the type of the OneOf. This is likely due to an invalid JSON structure or missing properties.");
+						}
+
+						Type resultType = result.GetType();
+						foreach (var pair in _valuesFor{{baseClassName}})
+						{
+							PropertyInfo? property = resultType.GetProperty(pair.Key);
+							if (property is null)
+							{
+								property = resultType.GetProperties().FirstOrDefault(x => x.GetCustomAttributes<JsonPropertyNameAttribute>().FirstOrDefault(attr => attr.Name == pair.Key) is not null);
+								if (property is null)
+									throw new ArgumentException($"Property '{pair.Key}' not found in type '{resultType.Name}'.");
+							}
+							property.SetValue(result, pair.Value);
+						}
+
+						return result;
+					}
+					scopeCount--;
+					break;
+				}
+				case JsonTokenType.PropertyName:
+				{
+					string propertyName = reader.GetString()!;
+					currentProperty = propertyName;
+{{propertyMatching}}					break;
+				}
+				case JsonTokenType.None:
+				case JsonTokenType.Comment:
+					break;
+				case JsonTokenType.String:
+					_valuesFor{{baseClassName}}[currentProperty] = reader.GetString();
+					break;
+				case JsonTokenType.Number:
+					_valuesFor{{baseClassName}}[currentProperty] = reader.GetDouble();
+					break;
+				case JsonTokenType.True:
+					_valuesFor{{baseClassName}}[currentProperty] = true;
+					break;
+				case JsonTokenType.False:
+					_valuesFor{{baseClassName}}[currentProperty] = false;
+					break;
+				case JsonTokenType.Null:
+					_valuesFor{{baseClassName}}[currentProperty] = null;
+					break;
+				default:
+					throw new ArgumentOutOfRangeException();
+			}
+		}
+
+		throw new UnreachableException("The JSON reader did not complete reading the OneOf structure. This may indicate an incomplete or malformed JSON input.");
+	}
+
+	public override void Write(Utf8JsonWriter writer, {{baseClassName}} value, JsonSerializerOptions options)
+	{
+		throw new NotImplementedException();
+	}
+}
