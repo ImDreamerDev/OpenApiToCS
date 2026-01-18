@@ -1,0 +1,23 @@
+// Auto-generated Mock Server
+// From OpenAPI: {{apiTitle}} v{{apiVersion}}
+
+var builder = WebApplication.CreateBuilder(args);
+builder.Services.AddCors(options =>
+{
+    options.AddDefaultPolicy(policy =>
+    {
+        policy.AllowAnyOrigin().AllowAnyMethod().AllowAnyHeader();
+    });
+});
+
+var app = builder.Build();
+app.UseCors();
+
+Console.WriteLine("🚀 Mock API Server: {{apiTitle}}");
+Console.WriteLine("📋 Version: {{apiVersion}}");
+Console.WriteLine("🌐 Listening on: http://localhost:5000");
+Console.WriteLine();
+
+{{endpoints}}
+
+app.Run();

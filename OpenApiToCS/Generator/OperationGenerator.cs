@@ -176,7 +176,10 @@ public class OperationGenerator(OpenApiDocument document, DataClassGenerationRes
 
         bool hasReturnType;
         string returnTypeString = string.Empty;
-        var successfulContent = okResponse.Value?.Content?.FirstOrDefault();
+        // Default to application/json if available, otherwise first content type
+        var successfulContent = okResponse.Value?.Content?.ContainsKey("application/json") == true
+            ? new KeyValuePair<string, OpenApiSchemaContainer>("application/json", okResponse.Value.Content["application/json"])
+            : okResponse.Value?.Content?.FirstOrDefault();
         
         if (okResponse.Value?.Content is not null && okResponse.Value.Content.Count == 0 || (okResponse.Value is null && successResponse.Value is not null))
         {
@@ -253,7 +256,11 @@ public class OperationGenerator(OpenApiDocument document, DataClassGenerationRes
         string? bodyName = null;
         if (operation.RequestBody?.Content.Count > 0)
         {
-            var requestBody = operation.RequestBody.Content.FirstOrDefault();
+            // Default to application/json if available, otherwise first content type
+            var requestBody = operation.RequestBody.Content.ContainsKey("application/json")
+                ? new KeyValuePair<string, OpenApiSchemaContainer>("application/json", operation.RequestBody.Content["application/json"])
+                : operation.RequestBody.Content.First();
+                
             if (requestBody.Value.Schema.Reference is not null)
             {
                 string typeName = GetClassNameFromKey(requestBody.Value.Schema.Reference).ToTitleCase();
@@ -282,19 +289,20 @@ public class OperationGenerator(OpenApiDocument document, DataClassGenerationRes
             allParameters.Add("JsonSerializerOptions? jsonSerializerOptions = null");
 
         // Build serializer setup
-        StringBuilder serializerSetup = new StringBuilder();
+        string serializerSetup = string.Empty;
         if (hasReturnType || bodyName is not null)
         {
-            serializerSetup.AppendLine("\t\tif (jsonSerializerOptions is null)");
-            serializerSetup.AppendLine("\t\t{");
-            serializerSetup.AppendLine("\t\t\tjsonSerializerOptions = new JsonSerializerOptions(JsonSerializerDefaults.Web);");
-            serializerSetup.AppendLine("\t\t\tjsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());");
-            serializerSetup.AppendLine("\t\t}");
-            
+            var converterRegistrations = new StringBuilder();
             foreach (OneOfConverter oneOfConverter in dataClassGenerationResult.Converters)
             {
-                serializerSetup.AppendLine($"\t\tjsonSerializerOptions.Converters.Add(new {oneOfConverter.Name}());");
+                converterRegistrations.AppendLine($"\t\tjsonSerializerOptions.Converters.Add(new {oneOfConverter.Name}());");
             }
+
+            var serializerReplacements = new Dictionary<string, string>
+            {
+                ["converterRegistrations"] = converterRegistrations.ToString()
+            };
+            serializerSetup = TemplateEngine.RenderTemplate("SerializerSetup", serializerReplacements);
         }
 
         // Build query builder
@@ -307,25 +315,35 @@ public class OperationGenerator(OpenApiDocument document, DataClassGenerationRes
                 if (parameter.In != "query")
                     continue;
 
+                var schema = parameter.Schema;
+                var paramValue = IsReferenceType(schema) || parameter.Required is true
+                    ? parameter.Name.FirstCharToLower()
+                    : $"{parameter.Name.FirstCharToLower()}.Value";
+
                 if (parameter.Required is false)
                 {
-                    queryBuilder.AppendLine($"\t\tif ({parameter.Name.FirstCharToLower()} is not null)");
-                }
-
-                var schema = parameter.Schema;
-                if (IsReferenceType(schema) || parameter.Required is true)
-                {
-                    queryBuilder.AppendLine($"\t\t\tqueryBuilder.Add(\"{parameter.Name}\", {parameter.Name.FirstCharToLower()}.ToString());");
+                    var optionalReplacements = new Dictionary<string, string>
+                    {
+                        ["paramName"] = parameter.Name.FirstCharToLower(),
+                        ["paramOriginalName"] = parameter.Name,
+                        ["paramValue"] = paramValue
+                    };
+                    queryBuilder.Append(TemplateEngine.RenderTemplate("QueryParameterOptional", optionalReplacements));
                 }
                 else
                 {
-                    queryBuilder.AppendLine($"\t\t\tqueryBuilder.Add(\"{parameter.Name}\", {parameter.Name.FirstCharToLower()}.Value.ToString());");
+                    var requiredReplacements = new Dictionary<string, string>
+                    {
+                        ["paramName"] = parameter.Name,
+                        ["paramValue"] = parameter.Name.FirstCharToLower()
+                    };
+                    queryBuilder.Append(TemplateEngine.RenderTemplate("QueryParameter", requiredReplacements));
                 }
             }
         }
 
         // Build response handling
-        StringBuilder responseHandling = new StringBuilder();
+        string responseHandling;
         if (okResponse.Value?.Content != null && okResponse.Value.Content.Count != 0)
         {
             ArgumentNullException.ThrowIfNull(successfulContent);
@@ -340,17 +358,17 @@ public class OperationGenerator(OpenApiDocument document, DataClassGenerationRes
                 }
             }
 
-            responseHandling.AppendLine($"\t\t\tvar content = await response.Content.ReadAsStringAsync();");
-            responseHandling.AppendLine($"\t\t\tvar result = JsonSerializer.Deserialize<{returnType}>(content, jsonSerializerOptions);");
-            responseHandling.AppendLine("\t\t\tif (result is null && allowNullOrEmptyResponse)");
-            responseHandling.AppendLine("\t\t\t{");
-            responseHandling.AppendLine(successfulContent.Value.Value.Schema.Type == "array" ? "\t\t\t\treturn [];" : "\t\t\t\treturn null!;");
-            responseHandling.AppendLine("\t\t\t}");
-            responseHandling.AppendLine("\t\t\treturn result ?? throw new InvalidOperationException(\"Failed to deserialize response.\");");
+            var nullReturn = successfulContent.Value.Value.Schema.Type == "array" ? "[]" : "null!";
+            var responseReplacements = new Dictionary<string, string>
+            {
+                ["returnType"] = returnType,
+                ["nullReturn"] = nullReturn
+            };
+            responseHandling = TemplateEngine.RenderTemplate("ResponseHandlingWithReturn", responseReplacements);
         }
         else
         {
-            responseHandling.AppendLine("\t\t\treturn;");
+            responseHandling = TemplateEngine.RenderTemplate("ResponseHandlingVoid", new Dictionary<string, string>());
         }
 
         var replacements = new Dictionary<string, string>
@@ -360,14 +378,14 @@ public class OperationGenerator(OpenApiDocument document, DataClassGenerationRes
             ["returnType"] = returnTypeString,
             ["methodName"] = method + methodName,
             ["parameters"] = string.Join(", ", allParameters),
-            ["serializerSetup"] = serializerSetup.ToString(),
+            ["serializerSetup"] = serializerSetup,
             ["queryBuilder"] = queryBuilder.ToString(),
             ["httpMethod"] = method,
             ["path"] = path.Remove(0, 1),
             ["originalPath"] = path,
             ["apiVersionHeader"] = hasApiVersionHeader ? $"\t\thttpRequest.Headers.Add(\"api-version\", \"{Document.Info.Version}\");\n" : string.Empty,
             ["requestBody"] = bodyName is not null ? $"\t\thttpRequest.Content = JsonContent.Create({bodyName}, options: jsonSerializerOptions);\n" : string.Empty,
-            ["responseHandling"] = responseHandling.ToString()
+            ["responseHandling"] = responseHandling
         };
 
         return TemplateEngine.RenderTemplate("ApiOperation", replacements);

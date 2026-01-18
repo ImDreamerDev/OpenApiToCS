@@ -13,11 +13,15 @@ Generate type-safe C# API clients and models from OpenAPI 3.0 specifications.
 ✅ **Type Safety** - Strongly-typed models with nullable reference types  
 ✅ **Rich Type Mappings** - Maps OpenAPI types to appropriate C# types (Guid, DateTimeOffset, byte[], etc.)  
 ✅ **HTTP Client Generation** - Creates ready-to-use API clients with all endpoints  
+✅ **Mock Server Generator** - Generate runnable ASP.NET mock servers for testing  
+✅ **Spec Analytics** - Quality analysis and scoring of OpenAPI specifications  
+✅ **Template Customization** - Override default code templates with your own  
+✅ **MSBuild Integration** - Auto-generate code during build with `.openapi.json` files  
 ✅ **Problem Details** - Built-in support for RFC 7807 Problem Details  
-✅ **CLI Tool** - Easy-to-use command-line interface with watch mode  
+✅ **CLI Tool** - Professional command-line interface with watch mode  
 ✅ **Configuration Files** - Customize generation with `openapitocsconfig.json`  
 ✅ **Validation** - Validates OpenAPI specs before generation  
-✅ **Comprehensive Tests** - 195 tests covering all major features
+✅ **Comprehensive Tests** - 210 tests covering all major features
 
 ## Quick Start
 
@@ -34,7 +38,7 @@ dotnet tool install --global OpenApiToCS
 
 **From source:**
 ```bash
-git clone https://github.com/yourusername/OpenApiToCS.git
+git clone https://github.com/ImDreamerDev/OpenApiToCS.git
 cd OpenApiToCS
 dotnet build
 ```
@@ -48,14 +52,23 @@ openapitocs petstore.json
 # Specify output directory
 openapitocs api.json --output ./generated
 
+# Analyze spec quality
+openapitocs api.json --analyze
+
+# Generate mock server for testing
+openapitocs api.json --generate-mock-server --mock-output ./mock-server
+
 # Watch for changes and auto-regenerate
 openapitocs api.json --watch
 
 # Validate spec before generation
 openapitocs api.json --validate --verbose
 
-# Generate with interfaces for DI
-openapitocs api.json --interfaces
+# Generate with mono client for DI
+openapitocs api.json --mono
+
+# Use custom templates
+openapitocs api.json --template-dir ./my-templates
 ```
 
 ### Using Configuration File
@@ -65,7 +78,7 @@ Create `openapitocsconfig.json`:
 {
   "outputDirectory": "./generated",
   "namespace": "MyApi.Client",
-  "generateInterfaces": true
+  "generateMonoClient": true
 }
 ```
 
@@ -89,7 +102,11 @@ Options:
   -c, --config <file>       Configuration file (default: openapitocsconfig.json)
   -w, --watch               Watch for changes and regenerate
   --validate                Validate OpenAPI spec and show warnings
-  --interfaces              Generate interfaces for API clients
+  --analyze                 Analyze spec quality and show report
+  --generate-mock-server    Generate a runnable mock API server
+  --mock-output <dir>       Mock server output directory (default: ./MockServer)
+  --template-dir <dir>      Use custom code templates from directory
+  --mono                    Generate a single client class for all operations
   --verbose                 Show detailed output
   -h, --help                Show this help
   -v, --version             Show version
@@ -263,13 +280,147 @@ Text templates define the structure of generated code:
 - **TemplateEngine.cs** - Simple placeholder-based template engine
 - **DataClassGenerator.cs** - Generates models from OpenAPI schemas
 - **OperationGenerator.cs** - Generates API clients from operations
+- **MockServerGenerator.cs** - Generates runnable mock API servers
+- **SpecAnalyzer.cs** - Analyzes and scores OpenAPI spec quality
 - **BaseGenerator.cs** - Shared utilities and helpers
 
 This template-based approach makes customization easy—just edit the template files instead of modifying C# string concatenation.
 
+## Advanced Features
+
+### Mock Server Generation
+
+Generate a runnable ASP.NET mock server from your OpenAPI spec for rapid prototyping and testing:
+
+```bash
+# Generate mock server
+openapitocs petstore.json --generate-mock-server --mock-output ./mock-server
+
+# Run the mock server
+cd mock-server
+dotnet run
+```
+
+The generated mock server:
+- ✅ Implements all endpoints from your OpenAPI spec
+- ✅ Returns sample responses based on schemas
+- ✅ Includes CORS support for frontend development
+- ✅ Logs all requests to console
+- ✅ Ready to run with `dotnet run`
+
+**Example generated endpoint:**
+```csharp
+app.MapGET("/pets", () =>
+{
+    Console.WriteLine("[GET] /pets");
+    return Results.Ok(new[] { new { id = 1, name = "Example Pet", status = "available" } });
+});
+```
+
+### Spec Analytics
+
+Analyze your OpenAPI specification quality and get actionable insights:
+
+```bash
+openapitocs petstore.json --analyze
+```
+
+**Output:**
+```
+=== OpenAPI Specification Analysis ===
+
+Title: Pet Store API
+Version: 1.0.0
+Paths: 5
+Operations: 12
+Schemas: 8 models
+
+Complexity: Medium
+- Endpoints: 12
+- Models: 8
+- Polymorphic types: 2
+
+Score: 85/100 (Grade: B)
+
+Warnings:
+- 2 operations missing descriptions
+- Consider adding security schemes
+
+===================================
+```
+
+The analyzer scores your spec based on:
+- Completeness (title, description, version)
+- Documentation quality
+- Schema definitions
+- Security configuration
+- Overall complexity
+
+### Template Customization
+
+Override default code templates with your own:
+
+```bash
+# Use custom templates
+openapitocs api.json --template-dir ./my-templates
+```
+
+**Create custom template** (`my-templates/RecordClass.txt`):
+```csharp
+// {{metadata}}
+namespace {{namespace}};
+
+/// <summary>
+/// Generated data model
+/// </summary>
+public record {{className}}
+{
+{{properties}}
+}
+```
+
+Available templates to customize:
+- `RecordClass.txt` - Data model structure
+- `EnumClass.txt` - Enum type structure
+- `Property.txt` - Property format
+- `ApiClient.txt` - Client class structure
+- `ApiOperation.txt` - Operation method format
+
+### MSBuild Integration
+
+Auto-generate code during build by adding `.openapi.json` files to your project:
+
+**Setup:**
+
+1. Install as NuGet package:
+```bash
+dotnet add package OpenApiToCS
+```
+
+2. Add your OpenAPI spec as `MyApi.openapi.json`
+
+3. Build your project:
+```bash
+dotnet build
+```
+
+Code is automatically generated before compilation!
+
+**Configure via MSBuild properties:**
+```xml
+<PropertyGroup>
+  <OpenApiToCSEnabled>true</OpenApiToCSEnabled>
+  <OpenApiToCSOutput>Generated</OpenApiToCSOutput>
+  <OpenApiToCSNamespace>MyApp.ApiClient</OpenApiToCSNamespace>
+  <OpenApiToCSGenerateMonoClient>true</OpenApiToCSGenerateMonoClient>
+</PropertyGroup>
+```
+
 ## Customization
 
-### Modifying Templates
+## Configuration File
+
+### Modifying Templates (Deprecated - Use --template-dir instead)
 
 Templates use `{{PLACEHOLDER}}` syntax for variable substitution:
 
@@ -318,9 +469,9 @@ The project includes GitHub Actions workflow that:
 ## Known Limitations
 
 - Only supports OpenAPI 3.0 JSON format (not YAML)
-- Discriminator mapping not yet utilized for deserialization
 - Does not generate server-side code (client-side only)
-- Assumes JSON content type for requests/responses
+- Complex nested polymorphic combinations may need manual adjustment
+- Mock server returns simple example data (not fully realistic)
 
 ## Contributing
 

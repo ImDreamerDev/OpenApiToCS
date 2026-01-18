@@ -111,7 +111,8 @@ public class DataClassGenerator(OpenApiDocument document) : BaseGenerator(docume
         StringBuilder enumValues = new StringBuilder();
         foreach (object enumValue in schema.Enum!)
         {
-            enumValues.AppendLine($"        {enumValue.ToString()},");
+            var enumReplacements = new Dictionary<string, string> { ["enumValue"] = enumValue.ToString()! };
+            enumValues.Append(TemplateEngine.RenderTemplate("EnumValue", enumReplacements));
         }
         
         var replacements = new Dictionary<string, string>
@@ -304,30 +305,24 @@ public class DataClassGenerator(OpenApiDocument document) : BaseGenerator(docume
         
         foreach (string className in classNames)
         {
-            propertyHashSets.AppendLine($"\tprivate static readonly HashSet<string> _propertiesFor{className} = [];");
+            var hashSetReplacements = new Dictionary<string, string> { ["className"] = className };
+            propertyHashSets.AppendLine(TemplateEngine.RenderTemplate("OneOfPropertyHashSet", hashSetReplacements));
         }
 
         foreach (string className in classNames)
         {
-            staticConstructorBody.AppendLine($"\t\tforeach (PropertyInfo prop in typeof({className}).GetProperties())");
-            staticConstructorBody.AppendLine($"\t\t{{");
-            staticConstructorBody.AppendLine($"\t\t\t_propertiesFor{className}.Add(prop.Name);");
-            staticConstructorBody.AppendLine($"\t\t}}");
+            var constructorReplacements = new Dictionary<string, string> { ["className"] = className };
+            staticConstructorBody.Append(TemplateEngine.RenderTemplate("OneOfStaticConstructor", constructorReplacements));
         }
 
         foreach (string className in classNames)
         {
-            propertyMatching.AppendLine($"\t\t\t\t\tif (_propertiesFor{className}.Contains(propertyName))");
-            propertyMatching.AppendLine($"\t\t\t\t\t{{");
-            propertyMatching.AppendLine($"\t\t\t\t\t\tif (scopeCount == 0)");
-            propertyMatching.AppendLine($"\t\t\t\t\t\t{{");
-            propertyMatching.AppendLine($"\t\t\t\t\t\t\tresult ??= new {className}();");
-            propertyMatching.AppendLine($"\t\t\t\t\t\t}}");
-            propertyMatching.AppendLine($"\t\t\t\t\t\telse");
-            propertyMatching.AppendLine($"\t\t\t\t\t\t{{");
-            propertyMatching.AppendLine($"\t\t\t\t\t\t\t_valuesFor{baseClassName}.Add(propertyName, null);");
-            propertyMatching.AppendLine($"\t\t\t\t\t\t}}");
-            propertyMatching.AppendLine($"\t\t\t\t\t}}");
+            var matchingReplacements = new Dictionary<string, string>
+            {
+                ["className"] = className,
+                ["baseClassName"] = baseClassName
+            };
+            propertyMatching.Append(TemplateEngine.RenderTemplate("OneOfPropertyMatching", matchingReplacements));
         }
 
         var replacements = new Dictionary<string, string>

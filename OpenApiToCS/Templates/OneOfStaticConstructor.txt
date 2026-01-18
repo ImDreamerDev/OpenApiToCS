@@ -1,0 +1,4 @@
+		foreach (PropertyInfo prop in typeof({{className}}).GetProperties())
+		{
+			_propertiesFor{{className}}.Add(prop.Name);
+		}

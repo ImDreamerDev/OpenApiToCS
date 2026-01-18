@@ -1,0 +1,7 @@
+			var content = await response.Content.ReadAsStringAsync();
+			var result = JsonSerializer.Deserialize<{{returnType}}>(content, jsonSerializerOptions);
+			if (result is null && allowNullOrEmptyResponse)
+			{
+				return {{nullReturn}};
+			}
+			return result ?? throw new InvalidOperationException("Failed to deserialize response.");

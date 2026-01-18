@@ -1,0 +1,11 @@
+					if (_propertiesFor{{className}}.Contains(propertyName))
+					{
+						if (scopeCount == 0)
+						{
+							result ??= new {{className}}();
+						}
+						else
+						{
+							_valuesFor{{baseClassName}}.Add(propertyName, null);
+						}
+					}

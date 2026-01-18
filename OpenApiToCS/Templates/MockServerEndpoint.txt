@@ -1,0 +1,6 @@
+// {{summary}}
+app.Map{{method}}("{{path}}", () =>
+{
+    Console.WriteLine("← {{method}} {{path}}");
+    return Results.Json({{mockData}});
+});
