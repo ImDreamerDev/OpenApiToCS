@@ -33,6 +33,16 @@ public static class ConfigurationLoader
         if (!options.GenerateMonoClients && config.GenerateMonoClient)
             options.GenerateMonoClients = true;
 
+        // Merge NuGet package configuration
+        options.PackageId ??= config.PackageId;
+        options.PackageVersion ??= config.PackageVersion;
+        options.PackageAuthors ??= config.PackageAuthors;
+        options.PackageCompany ??= config.PackageCompany;
+        options.PackageDescription ??= config.PackageDescription;
+        options.PackageTags ??= config.PackageTags;
+        options.PackageRepositoryUrl ??= config.PackageRepositoryUrl;
+        options.PackageLicense ??= config.PackageLicense;
+
         return options;
     }
 }

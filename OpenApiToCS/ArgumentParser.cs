@@ -64,6 +64,38 @@ public static class ArgumentParser
                     options.GenerateMonoClients = true;
                     break;
                 
+                case "--package-id":
+                    options.PackageId = GetNextArg(args, ref i);
+                    break;
+                
+                case "--package-version":
+                    options.PackageVersion = GetNextArg(args, ref i);
+                    break;
+                
+                case "--package-authors":
+                    options.PackageAuthors = GetNextArg(args, ref i);
+                    break;
+                
+                case "--package-company":
+                    options.PackageCompany = GetNextArg(args, ref i);
+                    break;
+                
+                case "--package-description":
+                    options.PackageDescription = GetNextArg(args, ref i);
+                    break;
+                
+                case "--package-tags":
+                    options.PackageTags = GetNextArg(args, ref i);
+                    break;
+                
+                case "--package-repo-url":
+                    options.PackageRepositoryUrl = GetNextArg(args, ref i);
+                    break;
+                
+                case "--package-license":
+                    options.PackageLicense = GetNextArg(args, ref i);
+                    break;
+                
                 default:
                     if (!arg.StartsWith("-") && string.IsNullOrEmpty(options.InputFile))
                     {

@@ -194,7 +194,7 @@ static class CodeGenerator
         var namespaceName = webhookGenerator.GetClassNameFromKey(document.Info.Title) + "ApiClientV" + document.Info.Version[0];
         var webhooks = webhookGenerator.GenerateWebhooks(namespaceName);
 
-        await OutputWriter.WriteGeneratedFiles(options.OutputDirectory, dataClasses, apiClasses, webhooks);
+        await OutputWriter.WriteGeneratedFiles(options.OutputDirectory, dataClasses, apiClasses, webhooks, document, options);
 
         PrintSuccess(dataClasses.ClassCount, apiClasses.Count, webhooks.Count, options.OutputDirectory, stopwatch.ElapsedMilliseconds, options.Verbose);
         return 0;

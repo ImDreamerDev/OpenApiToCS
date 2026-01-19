@@ -1,11 +1,13 @@
 using OpenApiToCS.Generator;
 using OpenApiToCS.Generator.Models;
+using OpenApiToCS.OpenApi;
+using System.Text.RegularExpressions;
 
 namespace OpenApiToCS;
 
 public static class OutputWriter
 {
-    public static async Task WriteGeneratedFiles(string outputDirectory, DataClassGenerationResult dataClasses, Dictionary<string, string> apiClasses, Dictionary<string, string>? webhooks = null)
+    public static async Task WriteGeneratedFiles(string outputDirectory, DataClassGenerationResult dataClasses, Dictionary<string, string> apiClasses, Dictionary<string, string>? webhooks = null, OpenApiDocument? document = null, CliOptions? options = null)
     {
         Directory.CreateDirectory(Path.Combine(outputDirectory, "Models"));
         Directory.CreateDirectory(Path.Combine(outputDirectory, "Api"));
@@ -21,6 +23,12 @@ public static class OutputWriter
         if (webhooks != null)
         {
             await WriteWebhooks(outputDirectory, webhooks);
+        }
+        
+        // Generate project file for NuGet packaging
+        if (document != null)
+        {
+            await WriteProjectFile(outputDirectory, document, options);
         }
     }
 
@@ -102,5 +110,35 @@ public static class OutputWriter
         
         // On Unix-like systems, case is significant, so baseFileName should work
         return baseFileName;
+    }
+
+    private static async Task WriteProjectFile(string outputDirectory, OpenApiDocument document, CliOptions? options)
+    {
+        string templatePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Templates", "ProjectFile.txt");
+        string template = await File.ReadAllTextAsync(templatePath);
+        
+        // Sanitize title for package ID
+        string sanitizedTitle = Regex.Replace(document.Info.Title, @"[^a-zA-Z0-9\.]", "");
+        string defaultPackageId = string.IsNullOrWhiteSpace(sanitizedTitle) ? "GeneratedApiClient" : sanitizedTitle;
+        
+        var replacements = new Dictionary<string, string>
+        {
+            ["{{packageId}}"] = options?.PackageId ?? defaultPackageId,
+            ["{{version}}"] = options?.PackageVersion ?? document.Info.Version ?? "1.0.0",
+            ["{{authors}}"] = options?.PackageAuthors ?? "Generated",
+            ["{{company}}"] = options?.PackageCompany ?? "Generated",
+            ["{{description}}"] = options?.PackageDescription ?? document.Info.Description ?? $"API Client for {document.Info.Title}",
+            ["{{tags}}"] = options?.PackageTags ?? "openapi;api-client;generated",
+            ["{{repositoryUrl}}"] = options?.PackageRepositoryUrl ?? "",
+            ["{{license}}"] = options?.PackageLicense ?? "MIT"
+        };
+
+        foreach (var replacement in replacements)
+        {
+            template = template.Replace(replacement.Key, replacement.Value);
+        }
+
+        string packageId = replacements["{{packageId}}"];
+        await File.WriteAllTextAsync(Path.Combine(outputDirectory, $"{packageId}.csproj"), template);
     }
 }

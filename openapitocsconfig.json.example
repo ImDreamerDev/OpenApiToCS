@@ -2,5 +2,14 @@
   "$schema": "https://json.schemastore.org/openapitocsconfig.json",
   "outputDirectory": "./generated",
   "namespace": "MyApi.Client",
-  "generateInterfaces": true
+  "generateInterfaces": true,
+  
+  "packageId": "MyApi.Client",
+  "packageVersion": "1.0.0",
+  "packageAuthors": "Your Name",
+  "packageCompany": "Your Company",
+  "packageDescription": "API client for MyApi",
+  "packageTags": "api;client;openapi",
+  "packageRepositoryUrl": "https://github.com/yourorg/yourrepo",
+  "packageLicense": "MIT"
 }
