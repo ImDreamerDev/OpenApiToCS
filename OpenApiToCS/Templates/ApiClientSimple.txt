@@ -10,17 +10,8 @@ using Microsoft.AspNetCore.Http.Extensions;
 namespace {{namespace}};
 
 // Generated API class for {{title}}
-public class {{className}}
+public class {{className}}(HttpClient httpClient)
 {
-	private readonly HttpClient _httpClient;
-	private readonly {{optionsClassName}} _options;
-
-	public {{className}}(HttpClient httpClient, {{optionsClassName}}? options = null)
-	{
-		_httpClient = httpClient;
-		_options = options ?? new {{optionsClassName}}();
-	}
-
 {{operations}}
 {{errorHandling}}
 }

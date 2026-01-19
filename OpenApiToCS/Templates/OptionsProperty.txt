@@ -1,0 +1,4 @@
+	/// <summary>
+	/// {{description}}
+	/// </summary>
+	public string? {{propertyName}} { get; set; }

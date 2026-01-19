@@ -13,16 +13,24 @@ public class DataClassGenerator(OpenApiDocument document) : BaseGenerator(docume
     public DataClassGenerationResult GenerateDataClasses()
     {
         string namespaceName = GetClassNameFromKey(Document.Info.Title).ToTitleCase() + "ApiClient" + "V" + Document.Info.Version[0] + ".Models";
+        
+        // Handle case where there are no schemas defined
+        if (Document.Components?.Schemas == null || Document.Components.Schemas.Count == 0)
+        {
+            return _result;
+        }
+        
         foreach (var schema in Document.Components.Schemas)
         {
-            if (schema.Value.Type is not null and not "object" && schema.Value is { Type: not "string", Enum: null, Items: null, AllOf: null, OneOf: null, AnyOf: null })
+            var primaryType = schema.Value.GetPrimaryType();
+            if (primaryType is not null and not "object" && schema.Value is { Enum: null, Items: null, AllOf: null, OneOf: null, AnyOf: null } && primaryType is not "string")
             {
-                Console.Error.WriteLine("Unsupported schema type: " + schema.Value.Type + " for key: " + schema.Key);
+                Console.Error.WriteLine("Unsupported schema type: " + primaryType + " for key: " + schema.Key);
                 continue;
             }
-            if (schema.Value.Reference is not null && schema.Value.Type is not "object" and not "array" and not "string")
+            if (schema.Value.Reference is not null && primaryType is not "object" and not "array" and not "string")
             {
-                Console.Error.WriteLine("Unsupported schema type: " + schema.Value.Type + " for key: " + schema.Key);
+                Console.Error.WriteLine("Unsupported schema type: " + primaryType + " for key: " + schema.Key);
                 continue;
             }
 
@@ -198,7 +206,8 @@ public class DataClassGenerator(OpenApiDocument document) : BaseGenerator(docume
         string propertyName = property.Key.ToTitleCase();
         string? propertyType;
 
-        if (property.Value.Type is not "object" and not null)
+        var primaryType = property.Value.GetPrimaryType();
+        if (primaryType is not "object" and not null)
         {
             if (property.Value.Items?.OneOf is not null)
             {
@@ -209,7 +218,8 @@ public class DataClassGenerator(OpenApiDocument document) : BaseGenerator(docume
                 var itemSchema = GetSchemaFromReference(property.Value.Items.Reference);
                 if (itemSchema?.AllOf is not null)
                 {
-                    if (property.Value.Type is not "array")
+                    var itemPrimaryType = property.Value.GetPrimaryType();
+                    if (itemPrimaryType is not "array")
                         propertyType = GetTypeFromKey(itemSchema.AllOf.First());
                     else
                         propertyType = GetTypeFromKey(itemSchema.AllOf.First()) + "[]";
@@ -224,7 +234,7 @@ public class DataClassGenerator(OpenApiDocument document) : BaseGenerator(docume
         {
             propertyType = GetClassNameFromKey(property.Value.Reference);
         }
-        else if (property.Value.Type is null)
+        else if (primaryType is null)
         {
             propertyType = "object";
         }
@@ -246,14 +256,15 @@ public class DataClassGenerator(OpenApiDocument document) : BaseGenerator(docume
             ["required"] = isRequired ? "\t[Required]\n" : string.Empty,
             ["jsonPropertyName"] = property.Key,
             ["propertyType"] = propertyType,
-            ["nullable"] = property.Value.Nullable ? "?" : string.Empty,
+            ["nullable"] = property.Value.IsNullable() ? "?" : string.Empty,
             ["propertyName"] = propertyName
         };
         
         string propertyCode = TemplateEngine.RenderTemplate("Property", replacements);
         sb.Append(propertyCode);
 
-        if (property.Value.Items is not null && property.Value.Items.Type == "object" && property.Value.Items.Reference is null && property.Value.Items.OneOf is null)
+        var itemsPrimaryType = property.Value.Items?.GetPrimaryType();
+        if (property.Value.Items is not null && itemsPrimaryType == "object" && property.Value.Items.Reference is null && property.Value.Items.OneOf is null)
         {
             _missingSchemasToGenerate.Enqueue((propertyName, property.Value.Items));
         }

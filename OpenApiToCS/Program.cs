@@ -188,25 +188,35 @@ static class CodeGenerator
     {
         var dataClasses = new DataClassGenerator(document).GenerateDataClasses();
         var apiClasses = new OperationGenerator(document, dataClasses, options.GenerateMonoClients).GenerateApiClasses();
+        
+        // Generate webhooks if present (OpenAPI 3.1 feature)
+        var webhookGenerator = new WebhookGenerator(document, dataClasses);
+        var namespaceName = webhookGenerator.GetClassNameFromKey(document.Info.Title) + "ApiClientV" + document.Info.Version[0];
+        var webhooks = webhookGenerator.GenerateWebhooks(namespaceName);
 
-        await OutputWriter.WriteGeneratedFiles(options.OutputDirectory, dataClasses, apiClasses);
+        await OutputWriter.WriteGeneratedFiles(options.OutputDirectory, dataClasses, apiClasses, webhooks);
 
-        PrintSuccess(dataClasses.ClassCount, apiClasses.Count, options.OutputDirectory, stopwatch.ElapsedMilliseconds, options.Verbose);
+        PrintSuccess(dataClasses.ClassCount, apiClasses.Count, webhooks.Count, options.OutputDirectory, stopwatch.ElapsedMilliseconds, options.Verbose);
         return 0;
     }
 
-    private static void PrintSuccess(int dataClassCount, int apiClientCount, string outputDir, long elapsedMs, bool verbose)
+    private static void PrintSuccess(int dataClassCount, int apiClientCount, int webhookCount, string outputDir, long elapsedMs, bool verbose)
     {
         if (verbose)
         {
             Console.WriteLine($"✓ Generated {dataClassCount} data classes");
             Console.WriteLine($"✓ Generated {apiClientCount} API clients");
+            if (webhookCount > 0)
+            {
+                Console.WriteLine($"✓ Generated {webhookCount} webhook handlers");
+            }
             Console.WriteLine($"✓ Output: {Path.GetFullPath(outputDir)}");
             Console.WriteLine($"✓ Completed in {elapsedMs} ms");
         }
         else
         {
-            Console.WriteLine($"Generated {dataClassCount} data classes and {apiClientCount} API clients in {elapsedMs} ms");
+            var webhookMsg = webhookCount > 0 ? $" and {webhookCount} webhook handlers" : "";
+            Console.WriteLine($"Generated {dataClassCount} data classes, {apiClientCount} API clients{webhookMsg} in {elapsedMs} ms");
         }
     }
 

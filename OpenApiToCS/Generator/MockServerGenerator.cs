@@ -95,11 +95,12 @@ public class MockServerGenerator
             ? response.Content["application/json"]
             : response.Content.First().Value;
 
-        if (content.Schema.Type == "array")
+        var primaryType = content.Schema.GetPrimaryType();
+        if (primaryType == "array")
         {
             return "new[] { new { id = 1, name = \"Example\" } }";
         }
-        else if (content.Schema.Type == "object" || content.Schema.Reference != null)
+        else if (primaryType == "object" || content.Schema.Reference != null)
         {
             return "new { id = 1, status = \"success\", message = \"Mock response\" }";
         }

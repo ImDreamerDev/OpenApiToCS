@@ -10,6 +10,10 @@ public class OpenApiDocument
     public required OpenApiInfo Info { get; init; }
     [JsonPropertyName("paths")]
     public Dictionary<string, OpenApiPath> Paths { get; init; } = [];
+    [JsonPropertyName("webhooks")]
+    public Dictionary<string, OpenApiPath>? Webhooks { get; init; } = [];
     [JsonPropertyName("components")]
-    public required OpenApiComponents Components { get; init; }
+    public OpenApiComponents? Components { get; init; }
+    
+    public bool IsOpenApi31 => OpenApiVersion.StartsWith("3.1");
 }

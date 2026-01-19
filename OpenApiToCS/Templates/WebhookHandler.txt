@@ -1,0 +1,12 @@
+using {{namespace}}.Models;
+
+namespace {{namespace}};
+
+/// <summary>
+/// Base webhook handler with default implementations
+/// Override methods to handle specific webhook events
+/// </summary>
+public class {{className}} : {{interfaceName}}
+{
+{{methods}}
+}

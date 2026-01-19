@@ -96,7 +96,10 @@ public class DarApiTests
         var generator = new OperationGenerator(_document, dataClasses, false);
         var result = generator.GenerateApiClasses();
 
-        foreach (var apiClass in result.Values)
+        // Filter out options classes
+        var apiClasses = result.Where(kvp => !kvp.Key.EndsWith("Options")).Select(kvp => kvp.Value);
+        
+        foreach (var apiClass in apiClasses)
         {
             apiClass.ShouldContain("namespace DatafordelerenHaendelserAPIApiClientV1;");
             apiClass.ShouldContain("using DatafordelerenHaendelserAPIApiClientV1.Models;");

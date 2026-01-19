@@ -5,13 +5,23 @@ namespace OpenApiToCS;
 
 public static class OutputWriter
 {
-    public static async Task WriteGeneratedFiles(string outputDirectory, DataClassGenerationResult dataClasses, Dictionary<string, string> apiClasses)
+    public static async Task WriteGeneratedFiles(string outputDirectory, DataClassGenerationResult dataClasses, Dictionary<string, string> apiClasses, Dictionary<string, string>? webhooks = null)
     {
         Directory.CreateDirectory(Path.Combine(outputDirectory, "Models"));
         Directory.CreateDirectory(Path.Combine(outputDirectory, "Api"));
+        
+        if (webhooks != null && webhooks.Count > 0)
+        {
+            Directory.CreateDirectory(Path.Combine(outputDirectory, "Webhooks"));
+        }
 
         await WriteDataClasses(outputDirectory, dataClasses);
         await WriteApiClients(outputDirectory, apiClasses);
+        
+        if (webhooks != null)
+        {
+            await WriteWebhooks(outputDirectory, webhooks);
+        }
     }
 
     private static async Task WriteDataClasses(string outputDirectory, DataClassGenerationResult dataClasses)
@@ -53,6 +63,16 @@ public static class OutputWriter
             await File.WriteAllTextAsync(
                 Path.Combine(outputDirectory, "Api", $"{apiClass.Key}.cs"),
                 apiClass.Value);
+        }
+    }
+    
+    private static async Task WriteWebhooks(string outputDirectory, Dictionary<string, string> webhooks)
+    {
+        foreach (var webhook in webhooks)
+        {
+            await File.WriteAllTextAsync(
+                Path.Combine(outputDirectory, "Webhooks", $"{webhook.Key}.cs"),
+                webhook.Value);
         }
     }
 

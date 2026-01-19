@@ -35,12 +35,12 @@ public class BaseGenerator(OpenApiDocument document)
         sb.Append("\t/// </summary>\n");
         return sb;
     }
-    
+
     protected string GenerateSummaryString(string? summary)
     {
         if (string.IsNullOrEmpty(summary))
             return string.Empty;
-            
+
         StringBuilder sb = new StringBuilder();
         return GenerateSummary(sb, summary).ToString();
     }
@@ -48,7 +48,7 @@ public class BaseGenerator(OpenApiDocument document)
     private readonly Dictionary<string, string> _classNamesCache = new Dictionary<string, string>(comparer: StringComparer.Ordinal);
 
 
-    protected string GetClassNameFromKey(string? key)
+    internal string GetClassNameFromKey(string? key)
     {
         if (string.IsNullOrEmpty(key))
             return "object";
@@ -65,14 +65,37 @@ public class BaseGenerator(OpenApiDocument document)
         if (lastDot != -1)
             span = span[(lastDot + 1)..];
 
-        // Sanitize: replace invalid chars with '_'
+        // Sanitize: replace invalid C# identifier chars with '_'
         Span<char> buffer = stackalloc char[span.Length];
         var j = 0;
-        foreach (char c in span)
+        for (int i = 0; i < span.Length; i++)
         {
-            buffer[j++] = c is '-' or '.' or '{' or '}' or ' ' ? '_' : c;
+            char c = span[i];
+            // Allow letters, digits, and underscore only
+            // First char must be letter or underscore
+            if (char.IsLetterOrDigit(c) || c == '_')
+            {
+                buffer[j++] = c;
+            }
+            else
+            {
+                buffer[j++] = '_';
+            }
         }
+
         var result = buffer[..j].ToString();
+
+        // Ensure it starts with a letter or underscore
+        if (result.Length > 0 && char.IsDigit(result[0]))
+        {
+            result = "_" + result;
+        }
+
+        // Ensure it's not empty
+        if (string.IsNullOrEmpty(result))
+        {
+            result = "GeneratedClass";
+        }
 
         _classNamesCache.TryAdd(key, result);
         return result;
@@ -83,7 +106,7 @@ public class BaseGenerator(OpenApiDocument document)
         if (schema.Reference is not null)
             return GetClassNameFromKey(schema.Reference);
 
-        string? type = schema.Type;
+        string? type = schema.GetPrimaryType();
         string? format = schema.Format;
 
         return type switch
@@ -93,6 +116,7 @@ public class BaseGenerator(OpenApiDocument document)
             "integer" when format == "int64" => "long",
             "number" when format is null or "float" => "float",
             "number" when format == "double" => "double",
+            "number" when format == "decimal" => "decimal",
             "boolean" => "bool",
             "string" when format == "date-time" => "DateTimeOffset",
             "string" when format == "date" => "DateOnly",
@@ -116,15 +140,20 @@ public class BaseGenerator(OpenApiDocument document)
         {
             return GetTypeFromKey(schema) + "[]";
         }
-        
-        if(schema.Type is not null && schema.Type is not "object")
+
+        var primaryType = schema.GetPrimaryType();
+        if (primaryType is not null && primaryType is not "object")
         {
             return GetTypeFromKey(schema) + "[]";
         }
 
+        if (owningType == "")
+        {
+            return "object[]";
+        }
+
         string type = owningType.ToTitleCase();
         return type + "[]";
-
     }
 
     protected static bool IsReferenceType(OpenApiSchema schema)
@@ -132,10 +161,10 @@ public class BaseGenerator(OpenApiDocument document)
         if (schema.Reference is not null)
             return true;
 
-        var type = schema.Type;
+        var type = schema.GetPrimaryType();
         var format = schema.Format;
 
-        if (schema.Nullable)
+        if (schema.IsNullable())
             return true;
 
         if (schema.Enum is not null)
@@ -166,7 +195,7 @@ public class BaseGenerator(OpenApiDocument document)
 
 
         sb.AppendLine($"{indentation}// Schema: {key}");
-        sb.AppendLine($"{indentation}// Type: {schema.Type}");
+        sb.AppendLine($"{indentation}// Type: {schema.GetPrimaryType()}");
         sb.AppendLine($"{indentation}// Format: {schema.Format ?? "N/A"}");
         if (schema.Description is not null)
             sb.AppendLine($"{indentation}// Description: {schema.Description.Replace("\n", " ")}");
@@ -179,12 +208,13 @@ public class BaseGenerator(OpenApiDocument document)
             }
         }
 
-        if (schema is { Type: "array", Items: not null })
+        var primaryType = schema.GetPrimaryType();
+        if (schema is { Items: not null } && primaryType == "array")
         {
             sb.AppendLine($"{indentation}// Items type: {GetTypeFromKey(schema.Items)}");
         }
 
-        if (schema is { Type: null or "object", Reference: not null })
+        if (schema is { Reference: not null } && (primaryType is null or "object"))
         {
             sb.AppendLine($"{indentation}// Reference: {schema.Reference}");
         }
@@ -194,7 +224,7 @@ public class BaseGenerator(OpenApiDocument document)
             sb.AppendLine($"{indentation}// Default value: {schema.Default}");
         }
 
-        sb.AppendLine($"{indentation}// Nullable: " + schema.Nullable);
+        sb.AppendLine($"{indentation}// Nullable: " + schema.IsNullable());
         sb.AppendLine($"{indentation}// Deprecated: " + schema.Deprecated);
 
         if (schema.Required?.Count > 0)
@@ -285,6 +315,6 @@ public class BaseGenerator(OpenApiDocument document)
             return null;
 
         string className = reference.Replace("#/components/schemas/", "");
-        return Document.Components.Schemas.GetValueOrDefault(className);
+        return Document.Components?.Schemas.GetValueOrDefault(className);
     }
 }
