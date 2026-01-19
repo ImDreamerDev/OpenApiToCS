@@ -13,16 +13,24 @@ public class DataClassGenerator(OpenApiDocument document) : BaseGenerator(docume
     public DataClassGenerationResult GenerateDataClasses()
     {
         string namespaceName = GetClassNameFromKey(Document.Info.Title).ToTitleCase() + "ApiClient" + "V" + Document.Info.Version[0] + ".Models";
+        
+        // Handle case where there are no schemas defined
+        if (Document.Components?.Schemas == null || Document.Components.Schemas.Count == 0)
+        {
+            return _result;
+        }
+        
         foreach (var schema in Document.Components.Schemas)
         {
-            if (schema.Value.Type is not null and not "object" && schema.Value is { Type: not "string", Enum: null, Items: null, AllOf: null, OneOf: null, AnyOf: null })
+            var primaryType = schema.Value.GetPrimaryType();
+            if (primaryType is not null and not "object" && schema.Value is { Enum: null, Items: null, AllOf: null, OneOf: null, AnyOf: null } && primaryType is not "string")
             {
-                Console.Error.WriteLine("Unsupported schema type: " + schema.Value.Type + " for key: " + schema.Key);
+                Console.Error.WriteLine("Unsupported schema type: " + primaryType + " for key: " + schema.Key);
                 continue;
             }
-            if (schema.Value.Reference is not null && schema.Value.Type is not "object" and not "array" and not "string")
+            if (schema.Value.Reference is not null && primaryType is not "object" and not "array" and not "string")
             {
-                Console.Error.WriteLine("Unsupported schema type: " + schema.Value.Type + " for key: " + schema.Key);
+                Console.Error.WriteLine("Unsupported schema type: " + primaryType + " for key: " + schema.Key);
                 continue;
             }
 
@@ -111,7 +119,8 @@ public class DataClassGenerator(OpenApiDocument document) : BaseGenerator(docume
         StringBuilder enumValues = new StringBuilder();
         foreach (object enumValue in schema.Enum!)
         {
-            enumValues.AppendLine($"        {enumValue.ToString()},");
+            var enumReplacements = new Dictionary<string, string> { ["enumValue"] = enumValue.ToString()! };
+            enumValues.Append(TemplateEngine.RenderTemplate("EnumValue", enumReplacements));
         }
         
         var replacements = new Dictionary<string, string>
@@ -197,7 +206,8 @@ public class DataClassGenerator(OpenApiDocument document) : BaseGenerator(docume
         string propertyName = property.Key.ToTitleCase();
         string? propertyType;
 
-        if (property.Value.Type is not "object" and not null)
+        var primaryType = property.Value.GetPrimaryType();
+        if (primaryType is not "object" and not null)
         {
             if (property.Value.Items?.OneOf is not null)
             {
@@ -208,7 +218,8 @@ public class DataClassGenerator(OpenApiDocument document) : BaseGenerator(docume
                 var itemSchema = GetSchemaFromReference(property.Value.Items.Reference);
                 if (itemSchema?.AllOf is not null)
                 {
-                    if (property.Value.Type is not "array")
+                    var itemPrimaryType = property.Value.GetPrimaryType();
+                    if (itemPrimaryType is not "array")
                         propertyType = GetTypeFromKey(itemSchema.AllOf.First());
                     else
                         propertyType = GetTypeFromKey(itemSchema.AllOf.First()) + "[]";
@@ -223,7 +234,7 @@ public class DataClassGenerator(OpenApiDocument document) : BaseGenerator(docume
         {
             propertyType = GetClassNameFromKey(property.Value.Reference);
         }
-        else if (property.Value.Type is null)
+        else if (primaryType is null)
         {
             propertyType = "object";
         }
@@ -245,14 +256,15 @@ public class DataClassGenerator(OpenApiDocument document) : BaseGenerator(docume
             ["required"] = isRequired ? "\t[Required]\n" : string.Empty,
             ["jsonPropertyName"] = property.Key,
             ["propertyType"] = propertyType,
-            ["nullable"] = property.Value.Nullable ? "?" : string.Empty,
+            ["nullable"] = property.Value.IsNullable() ? "?" : string.Empty,
             ["propertyName"] = propertyName
         };
         
         string propertyCode = TemplateEngine.RenderTemplate("Property", replacements);
         sb.Append(propertyCode);
 
-        if (property.Value.Items is not null && property.Value.Items.Type == "object" && property.Value.Items.Reference is null && property.Value.Items.OneOf is null)
+        var itemsPrimaryType = property.Value.Items?.GetPrimaryType();
+        if (property.Value.Items is not null && itemsPrimaryType == "object" && property.Value.Items.Reference is null && property.Value.Items.OneOf is null)
         {
             _missingSchemasToGenerate.Enqueue((propertyName, property.Value.Items));
         }
@@ -304,30 +316,24 @@ public class DataClassGenerator(OpenApiDocument document) : BaseGenerator(docume
         
         foreach (string className in classNames)
         {
-            propertyHashSets.AppendLine($"\tprivate static readonly HashSet<string> _propertiesFor{className} = [];");
+            var hashSetReplacements = new Dictionary<string, string> { ["className"] = className };
+            propertyHashSets.AppendLine(TemplateEngine.RenderTemplate("OneOfPropertyHashSet", hashSetReplacements));
         }
 
         foreach (string className in classNames)
         {
-            staticConstructorBody.AppendLine($"\t\tforeach (PropertyInfo prop in typeof({className}).GetProperties())");
-            staticConstructorBody.AppendLine($"\t\t{{");
-            staticConstructorBody.AppendLine($"\t\t\t_propertiesFor{className}.Add(prop.Name);");
-            staticConstructorBody.AppendLine($"\t\t}}");
+            var constructorReplacements = new Dictionary<string, string> { ["className"] = className };
+            staticConstructorBody.Append(TemplateEngine.RenderTemplate("OneOfStaticConstructor", constructorReplacements));
         }
 
         foreach (string className in classNames)
         {
-            propertyMatching.AppendLine($"\t\t\t\t\tif (_propertiesFor{className}.Contains(propertyName))");
-            propertyMatching.AppendLine($"\t\t\t\t\t{{");
-            propertyMatching.AppendLine($"\t\t\t\t\t\tif (scopeCount == 0)");
-            propertyMatching.AppendLine($"\t\t\t\t\t\t{{");
-            propertyMatching.AppendLine($"\t\t\t\t\t\t\tresult ??= new {className}();");
-            propertyMatching.AppendLine($"\t\t\t\t\t\t}}");
-            propertyMatching.AppendLine($"\t\t\t\t\t\telse");
-            propertyMatching.AppendLine($"\t\t\t\t\t\t{{");
-            propertyMatching.AppendLine($"\t\t\t\t\t\t\t_valuesFor{baseClassName}.Add(propertyName, null);");
-            propertyMatching.AppendLine($"\t\t\t\t\t\t}}");
-            propertyMatching.AppendLine($"\t\t\t\t\t}}");
+            var matchingReplacements = new Dictionary<string, string>
+            {
+                ["className"] = className,
+                ["baseClassName"] = baseClassName
+            };
+            propertyMatching.Append(TemplateEngine.RenderTemplate("OneOfPropertyMatching", matchingReplacements));
         }
 
         var replacements = new Dictionary<string, string>

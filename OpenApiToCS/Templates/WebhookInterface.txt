@@ -1,0 +1,11 @@
+using {{namespace}}.Models;
+
+namespace {{namespace}};
+
+/// <summary>
+/// Webhook handler interface for receiving events from the API
+/// </summary>
+public interface {{interfaceName}}
+{
+{{methods}}
+}

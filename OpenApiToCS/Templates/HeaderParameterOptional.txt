@@ -1,0 +1,2 @@
+		if ({{paramName}}.HasValue)
+			httpRequest.Headers.Add("{{headerName}}", {{paramValue}}.ToString());

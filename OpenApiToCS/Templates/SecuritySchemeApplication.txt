@@ -1,0 +1,3 @@
+		// Apply security: {{schemeName}} ({{schemeType}})
+		if (!string.IsNullOrEmpty(_options.{{propertyName}}))
+			httpRequest.Headers.Add("{{headerName}}", {{headerValue}});

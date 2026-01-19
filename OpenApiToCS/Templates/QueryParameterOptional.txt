@@ -1,0 +1,2 @@
+		if ({{paramName}} is not null)
+			queryBuilder.Add("{{paramOriginalName}}", {{paramValue}}.ToString());

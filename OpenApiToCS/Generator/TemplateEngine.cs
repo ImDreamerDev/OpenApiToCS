@@ -6,6 +6,13 @@ namespace OpenApiToCS.Generator;
 public static class TemplateEngine
 {
     private static readonly Dictionary<string, string> _templateCache = new();
+    private static string? _customTemplateDirectory;
+    
+    public static void SetCustomTemplateDirectory(string? path)
+    {
+        _customTemplateDirectory = path;
+        _templateCache.Clear(); // Clear cache when switching template directories
+    }
     
     public static string RenderTemplate(string templateName, Dictionary<string, string> replacements)
     {
@@ -21,21 +28,39 @@ public static class TemplateEngine
     
     private static string LoadTemplate(string templateName)
     {
-        if (_templateCache.TryGetValue(templateName, out string? cached))
+        string cacheKey = _customTemplateDirectory != null ? $"{_customTemplateDirectory}:{templateName}" : templateName;
+        
+        if (_templateCache.TryGetValue(cacheKey, out string? cached))
         {
             return cached;
         }
         
-        string templatePath = Path.Combine(GetTemplatesDirectory(), $"{templateName}.txt");
+        string templatePath;
+        
+        // Check custom template directory first
+        if (_customTemplateDirectory != null)
+        {
+            templatePath = Path.Combine(_customTemplateDirectory, $"{templateName}.txt");
+            if (File.Exists(templatePath))
+            {
+                Console.WriteLine($"Using custom template: {templatePath}");
+                string content = File.ReadAllText(templatePath);
+                _templateCache[cacheKey] = content;
+                return content;
+            }
+        }
+        
+        // Fall back to default templates
+        templatePath = Path.Combine(GetTemplatesDirectory(), $"{templateName}.txt");
         
         if (!File.Exists(templatePath))
         {
             throw new FileNotFoundException($"Template file not found: {templatePath}");
         }
         
-        string content = File.ReadAllText(templatePath);
-        _templateCache[templateName] = content;
-        return content;
+        string defaultContent = File.ReadAllText(templatePath);
+        _templateCache[cacheKey] = defaultContent;
+        return defaultContent;
     }
     
     private static string GetTemplatesDirectory()

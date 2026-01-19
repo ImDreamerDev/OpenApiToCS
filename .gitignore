@@ -60,3 +60,4 @@ CodeCoverage/
 TestResult.xml
 nunit-*.xml
 .idea
+TestMockServer

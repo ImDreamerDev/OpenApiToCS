@@ -13,12 +13,11 @@
         <Company>OpenApiToCS</Company>
         <Description>Generate type-safe C# API clients and models from OpenAPI 3.0 specifications. Supports polymorphic types (allOf, oneOf, anyOf), discriminators, enums, and comprehensive type mappings.</Description>
         <PackageTags>openapi;swagger;codegen;api-client;csharp;generator;dotnet</PackageTags>
-        <PackageProjectUrl>https://github.com/yourusername/OpenApiToCS</PackageProjectUrl>
-        <RepositoryUrl>https://github.com/yourusername/OpenApiToCS</RepositoryUrl>
+        <PackageProjectUrl>https://github.com/ImDreamerDev/OpenApiToCS</PackageProjectUrl>
+        <RepositoryUrl>https://github.com/ImDreamerDev/OpenApiToCS</RepositoryUrl>
         <RepositoryType>git</RepositoryType>
         <PackageLicenseExpression>MIT</PackageLicenseExpression>
         <PackageReadmeFile>README.md</PackageReadmeFile>
-        <PackageReleaseNotes>See CHANGELOG.md for release notes</PackageReleaseNotes>
         <Copyright>Copyright (c) 2026 OpenApiToCS Contributors</Copyright>
         
         <!-- Tool packaging -->
@@ -57,7 +56,6 @@
         </None>
         <None Include="..\README.md" Pack="true" PackagePath="\"/>
         <None Include="..\LICENSE" Pack="true" PackagePath="\"/>
-        <None Include="..\CHANGELOG.md" Pack="true" PackagePath="\"/>
     </ItemGroup>
 
 </Project>

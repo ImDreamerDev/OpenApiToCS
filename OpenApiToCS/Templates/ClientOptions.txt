@@ -1,0 +1,9 @@
+namespace {{namespace}};
+
+/// <summary>
+/// Configuration options for {{clientName}}
+/// </summary>
+public class {{optionsClassName}}
+{
+{{properties}}
+}

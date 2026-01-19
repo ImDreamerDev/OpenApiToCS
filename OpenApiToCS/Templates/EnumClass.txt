@@ -3,5 +3,4 @@ namespace {{namespace}};
 {{metadata}}{{summary}}	[JsonConverter(typeof(JsonStringEnumConverter))]
 	public enum {{className}}
 {
-{{enumValues}}
-}
+{{enumValues}}}

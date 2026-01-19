@@ -1,11 +1,12 @@
 {{metadata}}{{summary}}	public async Task{{returnType}} {{methodName}}({{parameters}})
 	{
 {{serializerSetup}}{{queryBuilder}}		HttpRequestMessage httpRequest = new HttpRequestMessage(HttpMethod.{{httpMethod}}, $"{{path}}" + queryBuilder);
-{{apiVersionHeader}}{{requestBody}}		configureRequest?.Invoke(httpRequest);
-		HttpResponseMessage response = await httpClient.SendAsync(httpRequest);
+{{securityApplication}}{{headerParameters}}{{apiVersionHeader}}{{requestBody}}		configureRequest?.Invoke(httpRequest);
+		HttpResponseMessage response = await _httpClient.SendAsync(httpRequest);
 		if (response.IsSuccessStatusCode)
 		{
 {{responseHandling}}		}
 		await HandleError(response, $"{{originalPath}}");
 		throw new UnreachableException("This should never happen, as EnsureSuccessStatusCode should throw an exception if the status code is not successful.");
 	}
+

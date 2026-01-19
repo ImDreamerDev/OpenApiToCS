@@ -1,0 +1,31 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <LangVersion>latest</LangVersion>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    
+    <!-- NuGet Package Properties -->
+    <PackageId>{{packageId}}</PackageId>
+    <Version>{{version}}</Version>
+    <Authors>{{authors}}</Authors>
+    <Company>{{company}}</Company>
+    <Description>{{description}}</Description>
+    <PackageTags>{{tags}}</PackageTags>
+    <RepositoryUrl>{{repositoryUrl}}</RepositoryUrl>
+    <PackageLicenseExpression>{{license}}</PackageLicenseExpression>
+    <GeneratePackageOnBuild>false</GeneratePackageOnBuild>
+  </PropertyGroup>
+
+  <ItemGroup>
+     <PackageReference Include="System.ComponentModel.Annotations" Version="5.0.0" />
+     <PackageReference Include="Hellang.Middleware.ProblemDetails" Version="6.5.1" />
+     <PackageReference Include="Microsoft.AspNetCore.Http.Extensions" Version="2.3.9" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+  </ItemGroup>
+
+</Project>

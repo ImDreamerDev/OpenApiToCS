@@ -10,7 +10,7 @@ namespace OpenApiToCS.Tests;
 /// </summary>
 public class EdgeCaseTests
 {
-    [Fact(Skip = "Edge case - generator may create empty client classes")]
+    [Fact]
     public void Should_Handle_Empty_Paths()
     {
         // Arrange
@@ -20,7 +20,10 @@ public class EdgeCaseTests
                 ""title"": ""Empty API"",
                 ""version"": ""1.0.0""
             },
-            ""paths"": {}
+            ""paths"": {},
+            ""components"": {
+                ""schemas"": {}
+            }
         }";
 
         JsonSerializerOptions options = new JsonSerializerOptions
@@ -40,7 +43,7 @@ public class EdgeCaseTests
         apiClasses.Count.ShouldBe(0);
     }
 
-    [Fact(Skip = "Edge case - generator may create classes for inline schemas")]
+    [Fact]
     public void Should_Handle_No_Schemas()
     {
         // Arrange
@@ -60,6 +63,9 @@ public class EdgeCaseTests
                         }
                     }
                 }
+            },
+            ""components"": {
+                ""schemas"": {}
             }
         }";
 
@@ -135,7 +141,7 @@ public class EdgeCaseTests
         dataClasses.Classes.Keys.ShouldContain("Level3");
     }
 
-    [Fact(Skip = "Edge case - generator adds nullable marker to array properties")]
+    [Fact]
     public void Should_Handle_Array_Of_Primitives()
     {
         // Arrange
@@ -182,8 +188,8 @@ public class EdgeCaseTests
         // Assert
         dataClasses.ClassCount.ShouldBe(1);
         var arrayClass = dataClasses.Classes["StringArray"];
-        arrayClass.Source.ShouldContain("public string[]? Tags");
-        arrayClass.Source.ShouldContain("public int[]? Numbers");
+        arrayClass.Source.ShouldContain("public string[] Tags");
+        arrayClass.Source.ShouldContain("public int[] Numbers");
     }
 
     [Fact]
@@ -414,7 +420,7 @@ public class EdgeCaseTests
         dataClasses.Classes["Model"].Source.ShouldContain("public string[]? Items");
     }
 
-    [Fact(Skip = "Edge case - generator creates multiple clients based on path grouping")]
+    [Fact]
     public void Should_Handle_Multiple_Success_Response_Codes()
     {
         // Arrange
@@ -423,6 +429,9 @@ public class EdgeCaseTests
             ""info"": {
                 ""title"": ""Multi Response API"",
                 ""version"": ""1.0.0""
+            },
+            ""components"": {
+                ""schemas"": {}
             },
             ""paths"": {
                 ""/test"": {

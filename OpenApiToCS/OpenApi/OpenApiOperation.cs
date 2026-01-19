@@ -5,6 +5,8 @@ namespace OpenApiToCS.OpenApi;
 
 public class OpenApiOperation
 {
+    [JsonPropertyName("operationId")]
+    public string? OperationId { get; init; }
     [JsonPropertyName("summary")]
     public string? Summary { get; init; }
     [JsonPropertyName("parameters")]

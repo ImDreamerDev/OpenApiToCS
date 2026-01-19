@@ -281,8 +281,219 @@ public class OperationGeneratorTests
         // Check representative method for /custom GET
         var customClient = result["DatafordelerenHaendelserAPIClientV1"];
         customClient.ShouldContain("namespace DatafordelerenHaendelserAPIApiClientV1;");
-        customClient.ShouldContain("public class DatafordelerenHaendelserAPIClientV1(HttpClient httpClient)");
+        customClient.ShouldContain("public class DatafordelerenHaendelserAPIClientV1");
+        customClient.ShouldContain("DatafordelerenHaendelserAPIClientV1Options");
         customClient.ShouldContain("public async Task<EventWrapper[]> GetCustom(");
         customClient.ShouldContain("HttpClient httpClient");
+    }
+
+    [Fact]
+    public void GeneratePolyApiClasses_Should_Group_By_Second_Segment_When_First_Is_Api()
+    {
+        // Arrange: Create spec with paths starting with /api/
+        var doc = new OpenApiDocument
+        {
+            OpenApiVersion = "3.0.0",
+            Info = new OpenApiInfo { Title = "Test API", Version = "1.0" },
+            Paths = new Dictionary<string, OpenApiPath>
+            {
+                ["/api/Users"] = new OpenApiPath
+                {
+                    Get = new OpenApiOperation
+                    {
+                        OperationId = "listUsers",
+                        Responses = new Dictionary<HttpStatusCode, OpenApiResponse>
+                        {
+                            [HttpStatusCode.OK] = new OpenApiResponse
+                            {
+                                Content = new Dictionary<string, OpenApiSchemaContainer>
+                                {
+                                    ["application/json"] = new OpenApiSchemaContainer
+                                    {
+                                        Schema = new OpenApiSchema { Type = "array", Items = new OpenApiSchema { Type = "object" } }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                ["/api/Products"] = new OpenApiPath
+                {
+                    Get = new OpenApiOperation
+                    {
+                        OperationId = "listProducts",
+                        Responses = new Dictionary<HttpStatusCode, OpenApiResponse>
+                        {
+                            [HttpStatusCode.OK] = new OpenApiResponse
+                            {
+                                Content = new Dictionary<string, OpenApiSchemaContainer>
+                                {
+                                    ["application/json"] = new OpenApiSchemaContainer
+                                    {
+                                        Schema = new OpenApiSchema { Type = "array", Items = new OpenApiSchema { Type = "object" } }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                ["/api/Orders"] = new OpenApiPath
+                {
+                    Get = new OpenApiOperation
+                    {
+                        OperationId = "listOrders",
+                        Responses = new Dictionary<HttpStatusCode, OpenApiResponse>
+                        {
+                            [HttpStatusCode.OK] = new OpenApiResponse
+                            {
+                                Content = new Dictionary<string, OpenApiSchemaContainer>
+                                {
+                                    ["application/json"] = new OpenApiSchemaContainer
+                                    {
+                                        Schema = new OpenApiSchema { Type = "array", Items = new OpenApiSchema { Type = "object" } }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        };
+
+        // Act
+        var dataClasses = new DataClassGenerator(doc).GenerateDataClasses();
+        var result = new OperationGenerator(doc, dataClasses, monoClient: false).GenerateApiClasses();
+
+        // Assert: Should create separate clients for Users, Products, and Orders
+        result.Keys.ShouldContain("UsersClientV1");
+        result.Keys.ShouldContain("ProductsClientV1");
+        result.Keys.ShouldContain("OrdersClientV1");
+        result.Keys.Count.ShouldBe(3); // 3 clients, no options since no security
+    }
+
+    [Fact]
+    public void GeneratePolyApiClasses_Should_Group_By_First_Segment_When_Not_Api()
+    {
+        // Arrange: Create spec with paths NOT starting with /api/
+        var doc = new OpenApiDocument
+        {
+            OpenApiVersion = "3.0.0",
+            Info = new OpenApiInfo { Title = "Test API", Version = "1.0" },
+            Paths = new Dictionary<string, OpenApiPath>
+            {
+                ["/users"] = new OpenApiPath
+                {
+                    Get = new OpenApiOperation
+                    {
+                        OperationId = "listUsers",
+                        Responses = new Dictionary<HttpStatusCode, OpenApiResponse>
+                        {
+                            [HttpStatusCode.OK] = new OpenApiResponse
+                            {
+                                Content = new Dictionary<string, OpenApiSchemaContainer>
+                                {
+                                    ["application/json"] = new OpenApiSchemaContainer
+                                    {
+                                        Schema = new OpenApiSchema { Type = "array", Items = new OpenApiSchema { Type = "integer" } }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                ["/products"] = new OpenApiPath
+                {
+                    Get = new OpenApiOperation
+                    {
+                        OperationId = "listProducts",
+                        Responses = new Dictionary<HttpStatusCode, OpenApiResponse>
+                        {
+                            [HttpStatusCode.OK] = new OpenApiResponse
+                            {
+                                Content = new Dictionary<string, OpenApiSchemaContainer>
+                                {
+                                    ["application/json"] = new OpenApiSchemaContainer
+                                    {
+                                        Schema = new OpenApiSchema { Type = "array", Items = new OpenApiSchema { Type = "integer" } }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        };
+
+        // Act
+        var dataClasses = new DataClassGenerator(doc).GenerateDataClasses();
+        var result = new OperationGenerator(doc, dataClasses, monoClient: false).GenerateApiClasses();
+
+        // Assert: Should create separate clients for users and products
+        result.Keys.ShouldContain("UsersClientV1");
+        result.Keys.ShouldContain("ProductsClientV1");
+        result.Keys.Count.ShouldBe(2);
+    }
+
+    [Fact]
+    public void GeneratePolyApiClasses_Should_Handle_Case_Insensitive_Api_Prefix()
+    {
+        // Arrange: Create spec with mixed case /API/ and /Api/
+        var doc = new OpenApiDocument
+        {
+            OpenApiVersion = "3.0.0",
+            Info = new OpenApiInfo { Title = "Test API", Version = "1.0" },
+            Paths = new Dictionary<string, OpenApiPath>
+            {
+                ["/API/Admin"] = new OpenApiPath
+                {
+                    Get = new OpenApiOperation
+                    {
+                        OperationId = "listAdmins",
+                        Responses = new Dictionary<HttpStatusCode, OpenApiResponse>
+                        {
+                            [HttpStatusCode.OK] = new OpenApiResponse
+                            {
+                                Content = new Dictionary<string, OpenApiSchemaContainer>
+                                {
+                                    ["application/json"] = new OpenApiSchemaContainer
+                                    {
+                                        Schema = new OpenApiSchema { Type = "array", Items = new OpenApiSchema { Type = "object" } }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                ["/Api/Products"] = new OpenApiPath
+                {
+                    Get = new OpenApiOperation
+                    {
+                        OperationId = "listProducts",
+                        Responses = new Dictionary<HttpStatusCode, OpenApiResponse>
+                        {
+                            [HttpStatusCode.OK] = new OpenApiResponse
+                            {
+                                Content = new Dictionary<string, OpenApiSchemaContainer>
+                                {
+                                    ["application/json"] = new OpenApiSchemaContainer
+                                    {
+                                        Schema = new OpenApiSchema { Type = "array", Items = new OpenApiSchema { Type = "object" } }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        };
+
+        // Act
+        var dataClasses = new DataClassGenerator(doc).GenerateDataClasses();
+        var result = new OperationGenerator(doc, dataClasses, monoClient: false).GenerateApiClasses();
+
+        // Assert: Should group by second segment (Admin and Products) regardless of case
+        result.Keys.ShouldContain("AdminClientV1");
+        result.Keys.ShouldContain("ProductsClientV1");
+        result.Keys.Count.ShouldBe(2);
     }
 }

@@ -1,11 +1,12 @@
-﻿using System.Text.Json.Serialization;
+﻿using System.Collections.Concurrent;
+using System.Text.Json.Serialization;
 using OpenApiToCS.OpenApi;
 
 namespace OpenApiToCS.Generator;
 
 public static partial class Extensions
 {
-    private static readonly Dictionary<string, string> _cache = new Dictionary<string, string>();
+    private static readonly ConcurrentDictionary<string, string> _cache = new ConcurrentDictionary<string, string>();
 
     internal static string ToTitleCase(this string input)
     {
@@ -17,14 +18,7 @@ public static partial class Extensions
                 throw new ArgumentException($"{nameof(input)} cannot be empty", nameof(input));
             default:
             {
-                if (_cache.TryGetValue(input, out string? cachedValue))
-                {
-                    return cachedValue;
-                }
-
-                string result = ManualPascalize(input);
-                _cache[input] = result;
-                return result;
+                return _cache.GetOrAdd(input, ManualPascalize);
             }
         }
     }

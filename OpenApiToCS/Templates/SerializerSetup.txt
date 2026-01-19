@@ -1,0 +1,6 @@
+		if (jsonSerializerOptions is null)
+		{
+			jsonSerializerOptions = new JsonSerializerOptions(JsonSerializerDefaults.Web);
+			jsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());
+		}
+{{converterRegistrations}}

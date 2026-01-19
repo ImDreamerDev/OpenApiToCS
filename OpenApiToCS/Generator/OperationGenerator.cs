@@ -58,17 +58,48 @@ public class OperationGenerator(OpenApiDocument document, DataClassGenerationRes
             }
         }
 
-        var replacements = new Dictionary<string, string>
+        var securityGenerator = new SecurityGenerator(Document);
+        var hasSecuritySchemes = Document.Components?.SecuritySchemes != null && Document.Components.SecuritySchemes.Count > 0;
+
+        string source;
+        if (hasSecuritySchemes)
         {
-            ["namespace"] = namespaceName,
-            ["title"] = Document.Info.Title,
-            ["className"] = className,
-            ["operations"] = operationsSb.ToString(),
-            ["errorHandling"] = TemplateEngine.RenderTemplate("ErrorHandling", new Dictionary<string, string>())
-        };
-        
-        string source = TemplateEngine.RenderTemplate("ApiClient", replacements);
-        result.Add(className, source);
+            var optionsClassName = className + "Options";
+            var replacements = new Dictionary<string, string>
+            {
+                ["namespace"] = namespaceName,
+                ["title"] = Document.Info.Title,
+                ["className"] = className,
+                ["optionsClassName"] = optionsClassName,
+                ["operations"] = operationsSb.ToString(),
+                ["errorHandling"] = TemplateEngine.RenderTemplate("ErrorHandling", new Dictionary<string, string>())
+            };
+
+            source = TemplateEngine.RenderTemplate("ApiClient", replacements);
+            result.Add(className, source);
+
+            // Generate options class
+            var optionsClass = securityGenerator.GenerateOptionsClass(namespaceName, className);
+            if (!string.IsNullOrEmpty(optionsClass))
+            {
+                result.Add(optionsClassName, optionsClass);
+            }
+        }
+        else
+        {
+            // No security schemes - use simple template
+            var replacements = new Dictionary<string, string>
+            {
+                ["namespace"] = namespaceName,
+                ["title"] = Document.Info.Title,
+                ["className"] = className,
+                ["operations"] = operationsSb.ToString(),
+                ["errorHandling"] = TemplateEngine.RenderTemplate("ErrorHandling", new Dictionary<string, string>())
+            };
+
+            source = TemplateEngine.RenderTemplate("ApiClientSimple", replacements);
+            result.Add(className, source);
+        }
 
         return result;
     }
@@ -79,7 +110,19 @@ public class OperationGenerator(OpenApiDocument document, DataClassGenerationRes
         char version = Document.Info.Version[0];
         string namespaceName = GetClassNameFromKey(Document.Info.Title).ToTitleCase() + "ApiClientV" + version;
         var groups = Document.Paths
-            .GroupBy(path => path.Key.Split('/')[1]) // Group by the first segment of the path
+            .GroupBy(path => 
+            {
+                var segments = path.Key.Split('/', StringSplitOptions.RemoveEmptyEntries);
+                if (segments.Length == 0)
+                    return "Api";
+                
+                // If first segment is "api", use the second segment for grouping
+                if (segments.Length > 1 && segments[0].Equals("api", StringComparison.OrdinalIgnoreCase))
+                    return segments[1];
+                
+                // Otherwise use the first segment
+                return segments[0];
+            })
             .ToDictionary(g => g.Key, g => g.ToList());
 
         foreach (var group in groups)
@@ -124,17 +167,48 @@ public class OperationGenerator(OpenApiDocument document, DataClassGenerationRes
                 }
             }
 
-            var replacements = new Dictionary<string, string>
+            var securityGenerator = new SecurityGenerator(Document);
+            var hasSecuritySchemes = Document.Components?.SecuritySchemes != null && Document.Components.SecuritySchemes.Count > 0;
+
+            string source;
+            if (hasSecuritySchemes)
             {
-                ["namespace"] = namespaceName,
-                ["title"] = group.Key,
-                ["className"] = className,
-                ["operations"] = operationsSb.ToString(),
-                ["errorHandling"] = TemplateEngine.RenderTemplate("ErrorHandling", new Dictionary<string, string>())
-            };
-            
-            string source = TemplateEngine.RenderTemplate("ApiClient", replacements);
-            result.Add(className, source);
+                var optionsClassName = className + "Options";
+                var replacements = new Dictionary<string, string>
+                {
+                    ["namespace"] = namespaceName,
+                    ["title"] = group.Key,
+                    ["className"] = className,
+                    ["optionsClassName"] = optionsClassName,
+                    ["operations"] = operationsSb.ToString(),
+                    ["errorHandling"] = TemplateEngine.RenderTemplate("ErrorHandling", new Dictionary<string, string>())
+                };
+
+                source = TemplateEngine.RenderTemplate("ApiClient", replacements);
+                result.Add(className, source);
+
+                // Generate options class for each client
+                var optionsClass = securityGenerator.GenerateOptionsClass(namespaceName, className);
+                if (!string.IsNullOrEmpty(optionsClass))
+                {
+                    result.Add(optionsClassName, optionsClass);
+                }
+            }
+            else
+            {
+                // No security schemes - use simple template
+                var replacements = new Dictionary<string, string>
+                {
+                    ["namespace"] = namespaceName,
+                    ["title"] = group.Key,
+                    ["className"] = className,
+                    ["operations"] = operationsSb.ToString(),
+                    ["errorHandling"] = TemplateEngine.RenderTemplate("ErrorHandling", new Dictionary<string, string>())
+                };
+
+                source = TemplateEngine.RenderTemplate("ApiClientSimple", replacements);
+                result.Add(className, source);
+            }
         }
 
         return result;
@@ -176,8 +250,11 @@ public class OperationGenerator(OpenApiDocument document, DataClassGenerationRes
 
         bool hasReturnType;
         string returnTypeString = string.Empty;
-        var successfulContent = okResponse.Value?.Content?.FirstOrDefault();
-        
+        // Default to application/json if available, otherwise first content type
+        var successfulContent = okResponse.Value?.Content?.ContainsKey("application/json") == true
+            ? new KeyValuePair<string, OpenApiSchemaContainer>("application/json", okResponse.Value.Content["application/json"])
+            : okResponse.Value?.Content?.FirstOrDefault();
+
         if (okResponse.Value?.Content is not null && okResponse.Value.Content.Count == 0 || (okResponse.Value is null && successResponse.Value is not null))
         {
             hasReturnType = false;
@@ -190,7 +267,7 @@ public class OperationGenerator(OpenApiDocument document, DataClassGenerationRes
                 if (okResponse.Value.Content is not null && canBeNull is false)
                 {
                     ArgumentNullException.ThrowIfNull(successfulContent);
-                    canBeNull = successfulContent.Value.Value.Schema.Nullable;
+                    canBeNull = successfulContent.Value.Value.Schema.IsNullable();
                 }
             }
             if (okResponse.Value?.Content is not null)
@@ -201,7 +278,7 @@ public class OperationGenerator(OpenApiDocument document, DataClassGenerationRes
                 {
                     var schema = GetSchemaFromReference(successfulContent.Value.Value.Schema.Reference);
 
-                    if (schema is not null && schema.Type is not "object")
+                    if (schema is not null && schema.GetPrimaryType() is not "object")
                     {
                         returnType = GetTypeFromKey(schema, successfulContent.Value.Value.Schema.Reference.Split("/")[^1]);
                     }
@@ -218,7 +295,7 @@ public class OperationGenerator(OpenApiDocument document, DataClassGenerationRes
         var parameters = new List<string>();
         var optionalParameters = new List<string>();
         var hasApiVersionHeader = false;
-        
+
         if (operation.Parameters is not null && operation.Parameters.Length > 0)
         {
             foreach (OpenApiParameter parameter in operation.Parameters)
@@ -253,16 +330,20 @@ public class OperationGenerator(OpenApiDocument document, DataClassGenerationRes
         string? bodyName = null;
         if (operation.RequestBody?.Content.Count > 0)
         {
-            var requestBody = operation.RequestBody.Content.FirstOrDefault();
+            // Default to application/json if available, otherwise first content type
+            var requestBody = operation.RequestBody.Content.ContainsKey("application/json")
+                ? new KeyValuePair<string, OpenApiSchemaContainer>("application/json", operation.RequestBody.Content["application/json"])
+                : operation.RequestBody.Content.First();
+
             if (requestBody.Value.Schema.Reference is not null)
             {
                 string typeName = GetClassNameFromKey(requestBody.Value.Schema.Reference).ToTitleCase();
                 bodyName = typeName.FirstCharToLower();
                 parameters.Add($"{typeName} {bodyName}");
             }
-            else if (requestBody.Value.Schema.Type is not null)
+            else if (requestBody.Value.Schema.GetPrimaryType() is not null)
             {
-                string typeName = GetClassNameFromKey(requestBody.Value.Schema.Type).ToTitleCase();
+                string typeName = GetClassNameFromKey(requestBody.Value.Schema.GetPrimaryType()!).ToTitleCase();
                 bodyName = methodName.FirstCharToLower();
                 parameters.Add($"{typeName} {bodyName}");
             }
@@ -275,26 +356,27 @@ public class OperationGenerator(OpenApiDocument document, DataClassGenerationRes
         List<string> allParameters = new List<string>(parameters);
         allParameters.AddRange(optionalParameters);
         allParameters.Add("Action<HttpRequestMessage>? configureRequest = null");
-        
+
         if (hasReturnType)
             allParameters.Add("bool allowNullOrEmptyResponse = false");
         if (hasReturnType || bodyName is not null)
             allParameters.Add("JsonSerializerOptions? jsonSerializerOptions = null");
 
         // Build serializer setup
-        StringBuilder serializerSetup = new StringBuilder();
+        string serializerSetup = string.Empty;
         if (hasReturnType || bodyName is not null)
         {
-            serializerSetup.AppendLine("\t\tif (jsonSerializerOptions is null)");
-            serializerSetup.AppendLine("\t\t{");
-            serializerSetup.AppendLine("\t\t\tjsonSerializerOptions = new JsonSerializerOptions(JsonSerializerDefaults.Web);");
-            serializerSetup.AppendLine("\t\t\tjsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());");
-            serializerSetup.AppendLine("\t\t}");
-            
+            var converterRegistrations = new StringBuilder();
             foreach (OneOfConverter oneOfConverter in dataClassGenerationResult.Converters)
             {
-                serializerSetup.AppendLine($"\t\tjsonSerializerOptions.Converters.Add(new {oneOfConverter.Name}());");
+                converterRegistrations.AppendLine($"\t\tjsonSerializerOptions.Converters.Add(new {oneOfConverter.Name}());");
             }
+
+            var serializerReplacements = new Dictionary<string, string>
+            {
+                ["converterRegistrations"] = converterRegistrations.ToString()
+            };
+            serializerSetup = TemplateEngine.RenderTemplate("SerializerSetup", serializerReplacements);
         }
 
         // Build query builder
@@ -307,25 +389,76 @@ public class OperationGenerator(OpenApiDocument document, DataClassGenerationRes
                 if (parameter.In != "query")
                     continue;
 
+                var schema = parameter.Schema;
+                var paramValue = IsReferenceType(schema) || parameter.Required is true
+                    ? parameter.Name.FirstCharToLower()
+                    : $"{parameter.Name.FirstCharToLower()}.Value";
+
                 if (parameter.Required is false)
                 {
-                    queryBuilder.AppendLine($"\t\tif ({parameter.Name.FirstCharToLower()} is not null)");
-                }
-
-                var schema = parameter.Schema;
-                if (IsReferenceType(schema) || parameter.Required is true)
-                {
-                    queryBuilder.AppendLine($"\t\t\tqueryBuilder.Add(\"{parameter.Name}\", {parameter.Name.FirstCharToLower()}.ToString());");
+                    var optionalReplacements = new Dictionary<string, string>
+                    {
+                        ["paramName"] = parameter.Name.FirstCharToLower(),
+                        ["paramOriginalName"] = parameter.Name,
+                        ["paramValue"] = paramValue
+                    };
+                    queryBuilder.Append(TemplateEngine.RenderTemplate("QueryParameterOptional", optionalReplacements));
                 }
                 else
                 {
-                    queryBuilder.AppendLine($"\t\t\tqueryBuilder.Add(\"{parameter.Name}\", {parameter.Name.FirstCharToLower()}.Value.ToString());");
+                    var requiredReplacements = new Dictionary<string, string>
+                    {
+                        ["paramName"] = parameter.Name,
+                        ["paramValue"] = parameter.Name.FirstCharToLower()
+                    };
+                    queryBuilder.Append(TemplateEngine.RenderTemplate("QueryParameter", requiredReplacements));
+                }
+            }
+        }
+
+        // Build header parameters
+        StringBuilder headerBuilder = new StringBuilder();
+        if (operation.Parameters is not null)
+        {
+            foreach (OpenApiParameter parameter in operation.Parameters)
+            {
+                if (parameter.In != "header")
+                    continue;
+                
+                // Skip api-version header as it's handled separately
+                if (parameter.Name == "api-version")
+                    continue;
+
+                var schema = parameter.Schema;
+                var paramValue = IsReferenceType(schema) || parameter.Required is true
+                    ? parameter.Name.FirstCharToLower()
+                    : $"{parameter.Name.FirstCharToLower()}.Value";
+
+                if (parameter.Required is false)
+                {
+                    var optionalReplacements = new Dictionary<string, string>
+                    {
+                        ["paramName"] = parameter.Name.FirstCharToLower(),
+                        ["headerName"] = parameter.Name,
+                        ["paramValue"] = paramValue
+                    };
+                    headerBuilder.Append(TemplateEngine.RenderTemplate("HeaderParameterOptional", optionalReplacements));
+                }
+                else
+                {
+                    var requiredReplacements = new Dictionary<string, string>
+                    {
+                        ["paramName"] = parameter.Name.FirstCharToLower(),
+                        ["headerName"] = parameter.Name,
+                        ["paramValue"] = parameter.Name.FirstCharToLower()
+                    };
+                    headerBuilder.Append(TemplateEngine.RenderTemplate("HeaderParameter", requiredReplacements));
                 }
             }
         }
 
         // Build response handling
-        StringBuilder responseHandling = new StringBuilder();
+        string responseHandling;
         if (okResponse.Value?.Content != null && okResponse.Value.Content.Count != 0)
         {
             ArgumentNullException.ThrowIfNull(successfulContent);
@@ -334,24 +467,28 @@ public class OperationGenerator(OpenApiDocument document, DataClassGenerationRes
             {
                 var schema = GetSchemaFromReference(successfulContent.Value.Value.Schema.Reference);
 
-                if (schema is not null && schema.Type is not "object")
+                if (schema is not null && schema.GetPrimaryType() is not null and not "object")
                 {
                     returnType = GetTypeFromKey(schema, successfulContent.Value.Value.Schema.Reference.Split("/")[^1]);
                 }
             }
 
-            responseHandling.AppendLine($"\t\t\tvar content = await response.Content.ReadAsStringAsync();");
-            responseHandling.AppendLine($"\t\t\tvar result = JsonSerializer.Deserialize<{returnType}>(content, jsonSerializerOptions);");
-            responseHandling.AppendLine("\t\t\tif (result is null && allowNullOrEmptyResponse)");
-            responseHandling.AppendLine("\t\t\t{");
-            responseHandling.AppendLine(successfulContent.Value.Value.Schema.Type == "array" ? "\t\t\t\treturn [];" : "\t\t\t\treturn null!;");
-            responseHandling.AppendLine("\t\t\t}");
-            responseHandling.AppendLine("\t\t\treturn result ?? throw new InvalidOperationException(\"Failed to deserialize response.\");");
+            var primaryType = successfulContent.Value.Value.Schema.GetPrimaryType();
+            var nullReturn = primaryType == "array" ? "[]" : "null!";
+            var responseReplacements = new Dictionary<string, string>
+            {
+                ["returnType"] = returnType,
+                ["nullReturn"] = nullReturn
+            };
+            responseHandling = TemplateEngine.RenderTemplate("ResponseHandlingWithReturn", responseReplacements);
         }
         else
         {
-            responseHandling.AppendLine("\t\t\treturn;");
+            responseHandling = TemplateEngine.RenderTemplate("ResponseHandlingVoid", new Dictionary<string, string>());
         }
+
+        var securityGenerator = new SecurityGenerator(Document);
+        var securityApplication = securityGenerator.GenerateSecurityApplication();
 
         var replacements = new Dictionary<string, string>
         {
@@ -360,39 +497,53 @@ public class OperationGenerator(OpenApiDocument document, DataClassGenerationRes
             ["returnType"] = returnTypeString,
             ["methodName"] = method + methodName,
             ["parameters"] = string.Join(", ", allParameters),
-            ["serializerSetup"] = serializerSetup.ToString(),
+            ["serializerSetup"] = serializerSetup,
             ["queryBuilder"] = queryBuilder.ToString(),
+            ["headerParameters"] = headerBuilder.ToString(),
+            ["securityApplication"] = securityApplication,
             ["httpMethod"] = method,
             ["path"] = path.Remove(0, 1),
             ["originalPath"] = path,
             ["apiVersionHeader"] = hasApiVersionHeader ? $"\t\thttpRequest.Headers.Add(\"api-version\", \"{Document.Info.Version}\");\n" : string.Empty,
             ["requestBody"] = bodyName is not null ? $"\t\thttpRequest.Content = JsonContent.Create({bodyName}, options: jsonSerializerOptions);\n" : string.Empty,
-            ["responseHandling"] = responseHandling.ToString()
+            ["responseHandling"] = responseHandling
         };
 
         return TemplateEngine.RenderTemplate("ApiOperation", replacements);
     }
 
-    private static string GenerateErrorHandling()
-    {
-        return TemplateEngine.RenderTemplate("ErrorHandling", new Dictionary<string, string>());
-    }
-
     private static string GetMonoMethodNameFromPath(string? key)
     {
-
-        //I want to have to two last pars of the string /individer/{id}/forbrugssteder/mapped
-
-
-
         if (string.IsNullOrEmpty(key))
             return "object";
 
-        string[] segments = key.Substring(1).Split('/');
-        if (segments.Length < 2)
-            return segments[^1].ToTitleCase();
+        // Skip /api/ prefix if present (case-insensitive)
+        string workingPath = key;
+        if (workingPath.StartsWith("/api/", StringComparison.OrdinalIgnoreCase) || 
+            workingPath.StartsWith("/API/", StringComparison.OrdinalIgnoreCase))
+        {
+            workingPath = workingPath.Substring(4); // Remove "/api" but keep the trailing "/"
+        }
 
-        return segments[^2].Replace("{", "").Replace("}", "").Replace(".", "").Replace(" ", "").Replace("-", "").ToTitleCase() + segments[^1].Replace("{", "").Replace("}", "").Replace(".", "").Replace(" ", "").Replace("-", "").ToTitleCase();
+        string[] segments = workingPath.Substring(1).Split('/');
+        
+        // For mono client, use all non-parameter segments to avoid naming collisions
+        StringBuilder nameBuilder = new StringBuilder();
+        foreach (var segment in segments)
+        {
+            // Skip parameter segments (those in curly braces)
+            if (segment.Contains('{'))
+                continue;
+                
+            string cleaned = segment.Replace("{", "").Replace("}", "").Replace(".", "").Replace(" ", "").Replace("-", "");
+            if (!string.IsNullOrEmpty(cleaned))
+            {
+                nameBuilder.Append(cleaned.ToTitleCase());
+            }
+        }
+        
+        string result = nameBuilder.ToString();
+        return string.IsNullOrEmpty(result) ? "Operation" : result;
     }
 
     private static string GetMethodNameFromPath(string? key)
@@ -400,22 +551,30 @@ public class OperationGenerator(OpenApiDocument document, DataClassGenerationRes
         if (string.IsNullOrEmpty(key))
             return "object";
 
-        int lastSlash = key.LastIndexOf('/');
-        int prevSlash = lastSlash > 0 ? key.LastIndexOf('/', lastSlash - 1) : -1;
+        // Skip /api/ prefix if present (case-insensitive)
+        string workingPath = key;
+        if (workingPath.StartsWith("/api/", StringComparison.OrdinalIgnoreCase) || 
+            workingPath.StartsWith("/API/", StringComparison.OrdinalIgnoreCase))
+        {
+            workingPath = workingPath.Substring(4); // Remove "/api" but keep the trailing "/"
+        }
+
+        int lastSlash = workingPath.LastIndexOf('/');
+        int prevSlash = lastSlash > 0 ? workingPath.LastIndexOf('/', lastSlash - 1) : -1;
 
         string raw;
-        if (prevSlash > 0 && key.IndexOf('{', prevSlash + 1, lastSlash - prevSlash - 1) == -1)
+        if (prevSlash > 0 && workingPath.IndexOf('{', prevSlash + 1, lastSlash - prevSlash - 1) == -1)
         {
             // Extract segment before last and last segment
-            string beforeLast = key.Substring(prevSlash + 1, lastSlash - prevSlash - 1);
-            string last = key[(lastSlash + 1)..];
+            string beforeLast = workingPath.Substring(prevSlash + 1, lastSlash - prevSlash - 1);
+            string last = workingPath[(lastSlash + 1)..];
             beforeLast = beforeLast.Contains('.') ? beforeLast[(beforeLast.LastIndexOf('.') + 1)..] : beforeLast;
             last = last.Contains('.') ? last[(last.LastIndexOf('.') + 1)..] : last;
             raw = beforeLast + " " + last;
         }
         else
         {
-            string last = lastSlash >= 0 ? key[(lastSlash + 1)..] : key;
+            string last = lastSlash >= 0 ? workingPath[(lastSlash + 1)..] : workingPath;
             raw = last;
         }
 
