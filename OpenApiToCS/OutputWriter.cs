@@ -26,16 +26,16 @@ public static class OutputWriter
 
     private static async Task WriteDataClasses(string outputDirectory, DataClassGenerationResult dataClasses)
     {
-        int index = 0;
+        var usedFileNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        
         foreach (var dataClass in dataClasses.Classes)
         {
-            var fileName = GetSafeFileName(dataClass.Key, index);
+            var fileName = GetSafeFileName(dataClass.Key, usedFileNames);
             await File.WriteAllTextAsync(
                 Path.Combine(outputDirectory, "Models", fileName),
                 dataClass.Value.Source);
 
             await WriteOneOfConverters(outputDirectory, dataClass.Value.OneOfConverters);
-            index++;
         }
     }
 
@@ -76,11 +76,31 @@ public static class OutputWriter
         }
     }
 
-    private static string GetSafeFileName(string className, int index)
+    private static string GetSafeFileName(string className, HashSet<string> usedFileNames)
     {
-        // Append index on Windows to avoid case-sensitivity issues
-        return Environment.OSVersion.Platform is PlatformID.Win32NT or PlatformID.Win32Windows or PlatformID.Win32S
-            ? $"{className}{index}.cs"
-            : $"{className}.cs";
+        string baseFileName = $"{className}.cs";
+        
+        // If no collision, use the base name
+        if (usedFileNames.Add(baseFileName))
+        {
+            return baseFileName;
+        }
+        
+        // On Windows (case-insensitive file system), if there's a collision, append index
+        if (Environment.OSVersion.Platform is PlatformID.Win32NT or PlatformID.Win32Windows or PlatformID.Win32S)
+        {
+            int index = 1;
+            string indexedFileName;
+            do
+            {
+                indexedFileName = $"{className}{index}.cs";
+                index++;
+            } while (!usedFileNames.Add(indexedFileName));
+            
+            return indexedFileName;
+        }
+        
+        // On Unix-like systems, case is significant, so baseFileName should work
+        return baseFileName;
     }
 }
